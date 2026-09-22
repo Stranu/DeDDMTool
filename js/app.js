@@ -128,10 +128,34 @@ async function boot() {
 
   goTo('initiative');
 
-  // Registra service worker (solo su http/https, non file://).
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  registerServiceWorker();
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+
+  // Se esiste già un controller, un cambio indica che una nuova versione
+  // ha terminato l'installazione. Sul primo avvio evitiamo un reload inutile.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+  if (hadController) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      toast('Aggiornamento disponibile: ricarico l’app…');
+      window.setTimeout(() => window.location.reload(), 650);
+    });
   }
+
+  navigator.serviceWorker.register('./sw.js').then((registration) => {
+    const checkForUpdate = () => registration.update().catch(() => {});
+    // Controlla subito e poi periodicamente mentre l’app resta aperta.
+    checkForUpdate();
+    window.setInterval(checkForUpdate, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdate();
+    });
+  }).catch(() => {});
 }
 
 boot();

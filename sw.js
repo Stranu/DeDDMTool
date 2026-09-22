@@ -1,6 +1,6 @@
 // Service worker: offline-first cache dei soli asset statici dell'app.
 // I dati utente (condizioni/magie importate, iniziativa) NON stanno qui: vivono in IndexedDB.
-const CACHE = 'dm-toolkit-v1';
+const CACHE = 'dm-toolkit-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -20,9 +20,14 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    // Forza il recupero dalla rete durante un rilascio: il nuovo worker
+    // non deve riempire la nuova cache con risposte HTTP obsolete.
+    const requests = ASSETS.map((asset) => new Request(asset, { cache: 'reload' }));
+    await cache.addAll(requests);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (e) => {

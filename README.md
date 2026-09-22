@@ -21,7 +21,15 @@ Esempi:
 
 Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi funzionano anche quando il repository è pubblicato sotto un sottopercorso, per esempio `https://utente.github.io/nome-repository/`.
 
-## Import dei dati
+### Pubblicare aggiornamenti
+
+Quando modifichi HTML, CSS o JavaScript:
+
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v2` a `dm-toolkit-v3`.
+2. Esegui commit e push dei file modificati.
+3. Attendi la pubblicazione di GitHub Pages.
+
+Il nuovo service worker precarica gli asset dalla rete, elimina automaticamente le cache precedenti e prende il controllo delle pagine aperte. L’app controlla gli aggiornamenti all’avvio, quando torna visibile e ogni cinque minuti; se una nuova versione è pronta, mostra un messaggio e ricarica la pagina. I dati utente sono in IndexedDB e non vengono cancellati dal cambio versione.
 
 Dalla scheda **Impostazioni** importa i due CSV separatamente:
 
