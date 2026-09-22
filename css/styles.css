@@ -253,3 +253,11 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .filter-field { flex: 1 1 160px; min-width: 0; }
 .filter-field label { display: block; color: var(--text-dim); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
 .cr-field { flex: 0 0 82px; }
+
+.temp-hp { color: #f0c968; font-weight: 600; }
+.active-spells-marker {
+  display: inline-grid; place-items: center; width: 24px; height: 24px;
+  color: var(--accent-2); font-size: 20px; font-weight: 700; cursor: help;
+}
+.backup-card { margin-top: 16px; }
+.backup-card .row { align-items: center; }

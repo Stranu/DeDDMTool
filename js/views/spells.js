@@ -4,7 +4,7 @@ import { el, ICON, fold, debounce } from '../util.js';
 import { levelLabel } from '../csv.js';
 
 // Stato dei filtri, mantenuto tra i redraw della vista.
-const filters = { q: '', levels: new Set(), classes: new Set(), schools: new Set() };
+const filters = { q: '', levels: new Set(), classes: new Set(), schools: new Set(), sort: 'name' };
 
 export function renderSpells(root, api) {
   const { state } = api;
@@ -47,6 +47,12 @@ export function renderSpells(root, api) {
   filtersBox.appendChild(chipGroup('Livello', levels, filters.levels, (v) => levelLabel(v)));
   filtersBox.appendChild(chipGroup('Classe', classes, filters.classes, (v) => cap(v)));
   filtersBox.appendChild(chipGroup('Scuola', schools, filters.schools, (v) => cap(v)));
+  const sortSelect = el('select', { class: 'input', 'aria-label': 'Ordina magie' }, [
+    el('option', { value: 'name', text: 'Nome A-Z' }),
+    el('option', { value: 'level', text: 'Livello crescente' })
+  ]);
+  sortSelect.value = filters.sort;
+  filtersBox.appendChild(el('div', { class: 'filter-field' }, [el('label', { text: 'Ordina' }), sortSelect]));
   filtersBox.appendChild(el('div', { style: 'width:100%' }, [resetBtn]));
 
   searchWrap.appendChild(filtersBox);
@@ -70,16 +76,27 @@ export function renderSpells(root, api) {
     updateFilterToggle();
   });
   resetBtn.addEventListener('click', () => {
-    filters.q = ''; filters.levels.clear(); filters.classes.clear(); filters.schools.clear();
+    filters.q = ''; filters.levels.clear(); filters.classes.clear(); filters.schools.clear(); filters.sort = 'name';
     search.value = '';
     renderSpells(root, api);
+  });
+
+  sortSelect.addEventListener('change', () => {
+    filters.sort = sortSelect.value;
+    draw();
   });
 
   search.addEventListener('input', debounce(() => { filters.q = search.value; draw(); }, 140));
   updateFilterToggle();
 
   function draw() {
-    const results = applyFilters(state.spells, filters);
+    const results = applyFilters(state.spells, filters).sort((a, b) => {
+      if (filters.sort === 'level') {
+        const levelDiff = (a.level ?? 99) - (b.level ?? 99);
+        if (levelDiff) return levelDiff;
+      }
+      return a.name.localeCompare(b.name, 'it');
+    });
     count.textContent = `${results.length} magi${results.length === 1 ? 'a' : 'e'}` + (activeFilterLabel());
     list.innerHTML = '';
     // Cap di rendering per fluidita' su mobile; ordina gia' per nome.

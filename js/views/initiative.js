@@ -33,7 +33,7 @@ export function renderInitiative(root, api) {
   nextBtn.addEventListener('click', nextTurn);
   addBtn.addEventListener('click', () => openAddMenu(api));
   rosterBtn.addEventListener('click', () => openRoster(api));
-  resetBtn.addEventListener('click', resetEncounter);
+  resetBtn.addEventListener('click', () => openResetMenu(api, resetEncounter, resetComplete));
 
   if (!state.encounter.combatants.length) {
     list.appendChild(emptyEncounter());
@@ -82,6 +82,7 @@ export function renderInitiative(root, api) {
       }
     }
     if (c.save) sub.appendChild(el('span', { text: `TS ${c.save}` }));
+    if (number(c.tempHp) > 0) sub.appendChild(el('span', { class: 'temp-hp', text: `🛡 PF temp ${c.tempHp}` }));
     if (c.creatureType) sub.appendChild(el('span', { text: c.creatureType }));
     if (c.cr !== '' && c.cr != null) sub.appendChild(el('span', { text: `GS ${c.cr}` }));
     if (c.notes) sub.appendChild(el('span', { text: '📝 Note' }));
@@ -92,8 +93,14 @@ export function renderInitiative(root, api) {
     }
     const knownCount = (c.knownSpells || []).length;
     const affectedCount = (c.affectedSpells || []).length;
-    if (knownCount || affectedCount) {
-      sub.appendChild(el('span', { text: `✦ ${knownCount} magie${knownCount === 1 ? '' : 'he'} · ${affectedCount} effet${affectedCount === 1 ? 'to' : 'ti'}` }));
+    if (knownCount) sub.appendChild(el('span', { text: `✦ ${knownCount} magie${knownCount === 1 ? '' : 'he'}` }));
+    if (affectedCount) {
+      sub.appendChild(el('span', {
+        class: 'active-spells-marker',
+        title: `Magie attive: ${affectedCount}`,
+        'aria-label': `Magie attive: ${affectedCount}`,
+        text: '✧'
+      }));
     }
     const main = el('div', { class: 'c-main' }, [name, sub, conditionLine]);
     main.addEventListener('click', () => openCombatantDrawer(c, api));
@@ -130,10 +137,20 @@ export function renderInitiative(root, api) {
 
   function resetEncounter() {
     if (!state.encounter.combatants.length) return;
-    if (!confirm('Azzerare i valori di iniziativa e il turno corrente? I combattenti resteranno nell’elenco.')) return;
+    if (!confirm('Azzerare iniziative e round mantenendo tutti i partecipanti?')) return;
     state.encounter.round = 1;
     state.encounter.activeId = null;
     for (const c of state.encounter.combatants) c.initiative = null;
+    api.save();
+    renderInitiative(root, api);
+  }
+
+  function resetComplete() {
+    if (!state.encounter.combatants.length) return;
+    if (!confirm('Svuotare completamente l’iniziativa? I PG/Alleati e le schede Mostri/PNG salvati resteranno intatti.')) return;
+    state.encounter.round = 1;
+    state.encounter.activeId = null;
+    state.encounter.combatants = [];
     api.save();
     renderInitiative(root, api);
   }
@@ -150,6 +167,18 @@ export function renderInitiative(root, api) {
     api.save();
     renderInitiative(root, api);
   }
+}
+
+// ---------- Drawer reset ----------
+function openResetMenu(api, resetEncounter, resetComplete) {
+  const body = el('div', {});
+  body.appendChild(el('p', { class: 'muted', text: 'Scegli se azzerare solo i turni o rimuovere tutti i partecipanti dall’iniziativa.' }));
+  const keep = el('button', { class: 'btn primary block', type: 'button', html: '<span>Reset iniziativa · mantieni partecipanti</span>' });
+  keep.addEventListener('click', () => { resetEncounter(); api.closeDrawer(); });
+  const clear = el('button', { class: 'btn danger block', type: 'button', style: 'margin-top:10px', html: '<span>Reset completo · svuota iniziativa</span>' });
+  clear.addEventListener('click', () => { resetComplete(); api.closeDrawer(); });
+  body.append(keep, clear);
+  api.openDrawer('Reset iniziativa', body);
 }
 
 // ---------- Drawer combattente ----------
@@ -172,7 +201,8 @@ function openCombatantDrawer(c, api, options = {}) {
   stats.append(
     statField('CA', c.ac, (v) => { c.ac = v; saveAndRefresh(); }),
     statField('PF attuali', c.hpCurrent, (v) => { c.hpCurrent = v; saveAndRefresh(); }),
-    statField('PF massimi', c.hpMax, (v) => { c.hpMax = v; saveAndRefresh(); })
+    statField('PF massimi', c.hpMax, (v) => { c.hpMax = v; saveAndRefresh(); }),
+    statField('PF temporanei', c.tempHp, (v) => { c.tempHp = v === '' ? 0 : Math.max(0, Number(v)); saveAndRefresh(); })
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
@@ -538,7 +568,7 @@ export function openArchiveDrawer(entry, api, returnView = 'initiative') {
 export function makeCombatant(name, kind = 'monster') {
   return {
     id: uid(), name, kind,
-    initiative: null, ac: '', hpCurrent: '', hpMax: '', save: '', notes: '', creatureType: '', cr: '', dead: false,
+    initiative: null, ac: '', hpCurrent: '', hpMax: '', tempHp: 0, save: '', notes: '', creatureType: '', cr: '', dead: false,
     conditions: [], conditionNames: {}, affectedSpells: [], knownSpells: []
   };
 }
@@ -554,7 +584,7 @@ export function cloneCombatant(source) {
 }
 
 const SHARED_FIELDS = [
-  'name', 'kind', 'ac', 'hpCurrent', 'hpMax', 'save', 'notes',
+  'name', 'kind', 'ac', 'hpCurrent', 'hpMax', 'tempHp', 'save', 'notes',
   'creatureType', 'cr', 'conditions', 'conditionNames', 'affectedSpells', 'knownSpells'
 ];
 
@@ -601,6 +631,7 @@ function linkSharedRosterEntities(state) {
 
 function addRosterMemberToEncounter(api, member) {
   const combatant = cloneCombatant(member);
+  combatant.tempHp = member.tempHp ?? 0;
   combatant.rosterId = member.id;
   addToEncounter(api, combatant);
 }
@@ -650,6 +681,7 @@ function normalizeCombatant(c) {
   c.affectedSpells = normalizeSpellLinks(c.affectedSpells);
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
   if (c.initiative === undefined) c.initiative = null;
+  if (c.tempHp === undefined) c.tempHp = 0;
   if (c.notes === undefined) c.notes = '';
   if (c.creatureType === undefined) c.creatureType = '';
   if (c.cr === undefined) c.cr = '';

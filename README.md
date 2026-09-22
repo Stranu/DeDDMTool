@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v3` a `dm-toolkit-v4`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v5` a `dm-toolkit-v6`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 
@@ -52,3 +52,20 @@ Il parser gestisce campi tra virgolette, virgole e descrizioni su più righe. I 
 ## Dati locali e aggiornamenti
 
 La persistenza è separata per origine e browser. Cancellare i dati del sito o usare un browser/dispositivo diverso rimuove o non mostra i dati precedentemente salvati. I file CSV originali non sono inclusi nel repository: vanno importati dall'utente.
+
+## Backup e sicurezza dati
+
+Dalla scheda **Impostazioni** puoi esportare o importare un backup JSON completo oppure una singola categoria: iniziativa, PG/Alleati, Mostri/PNG, condizioni o magie. L’importazione valida formato e versione e chiede conferma prima di sostituire i dati della categoria selezionata.
+
+Le modifiche di iniziativa e roster vengono salvate automaticamente in IndexedDB. In caso di errore di storage l’app mostra un messaggio visibile invece di fallire silenziosamente.
+
+## Combattimento
+
+- **Reset iniziativa**: azzera round e valori di iniziativa mantenendo tutti i partecipanti.
+- **Reset completo**: svuota l’iniziativa corrente senza rimuovere PG/Alleati o schede Mostri/PNG salvate.
+- I combattenti possono avere PF temporanei, mostrati anche nella lista iniziativa.
+- Le magie attive sui bersagli sono indicate da un simbolo compatto; i dettagli restano nel drawer del combattente.
+
+## Magie
+
+La lista può essere ordinata per nome oppure per livello crescente, oltre ai filtri per livello, classe e scuola.

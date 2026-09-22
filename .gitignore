@@ -1,3 +1,6 @@
 # Dataset locali forniti dall'utente: non pubblicare nel repository.
 conditions.csv
 spells.csv
+
+# Documentazione e profili generati localmente dall'analisi.
+.docs/

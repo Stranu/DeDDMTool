@@ -32,18 +32,31 @@ const views = {
 let current = 'initiative';
 
 // ---------------- Persistenza / auto-save ----------------
-let saveQueued = false;
+let savePromise = null;
+let saveRequested = false;
 export function save() {
-  // Debounce leggero: coalesce piu' eventi ravvicinati in una scrittura.
-  if (saveQueued) return;
-  saveQueued = true;
-  queueMicrotask(async () => {
-    saveQueued = false;
-    await Promise.all([
-      db.kvSet('encounter', state.encounter),
-      db.kvSet('roster', state.roster)
-    ]);
-  });
+  saveRequested = true;
+  if (savePromise) return savePromise;
+
+  savePromise = (async () => {
+    let success = true;
+    while (saveRequested) {
+      saveRequested = false;
+      try {
+        await Promise.all([
+          db.kvSet('encounter', state.encounter),
+          db.kvSet('roster', state.roster)
+        ]);
+      } catch (error) {
+        success = false;
+        console.error('Salvataggio locale fallito:', error);
+        toast('Errore: dati non salvati localmente. Controlla lo spazio disponibile.');
+        break;
+      }
+    }
+    return success;
+  })().finally(() => { savePromise = null; });
+  return savePromise;
 }
 
 // Ridisegna la vista corrente (le altre vengono ridisegnate al cambio tab).
@@ -155,13 +168,23 @@ function registerServiceWorker() {
 
   navigator.serviceWorker.register('./sw.js').then((registration) => {
     const checkForUpdate = () => registration.update().catch(() => {});
-    // Controlla subito e poi periodicamente mentre l’app resta aperta.
     checkForUpdate();
     window.setInterval(checkForUpdate, 5 * 60 * 1000);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') checkForUpdate();
     });
-  }).catch(() => {});
+  }).catch((error) => {
+    console.warn('Service worker non disponibile:', error);
+    toast('Aggiornamenti offline non disponibili in questa sessione.');
+  });
 }
 
-boot();
+boot().catch((error) => {
+  console.error('Avvio app fallito:', error);
+  toast('Impossibile caricare i dati locali. Ricarica la pagina o verifica i permessi del browser.');
+  const root = document.getElementById('view-initiative');
+  if (root) {
+    root.hidden = false;
+    root.innerHTML = '<div class="empty"><div>Si è verificato un errore durante l’avvio.</div><div class="muted">I dati locali non sono stati modificati. Prova a ricaricare la pagina.</div></div>';
+  }
+});
