@@ -174,7 +174,7 @@ Animale Messaggero,animal messenger,2° livello,ammaliamento (rituale),1 azione,
  durata dell’incantesimo aumenta di 48 ore per ogni 
  livello dello slot sopra il 2°.
  ",|druido|ranger|bardo
-Animare Morti,animate dead,3° livello,negromanzia,1 minuto,3 metri,"V, S, M (una goccia di sangue, un pezzodi carne e un pizzico di polvere d’ossa)
+Animare Morti,animate dead,3° livello,necromanzia,1 minuto,3 metri,"V, S, M (una goccia di sangue, un pezzodi carne e un pizzico di polvere d’ossa)
  ",Istantanea,"Questo incantesimo crea un servitore non morto. Scegli 
  una pila di ossa o un cadavere di un umanoide Medio o 
  Piccolo a gittata. Il tuo incantesimo imbeve il bersaglio 
@@ -635,7 +635,7 @@ Camminare nel Vento,wind walk,6° livello,trasmutazione,1 minuto,9 metri,"V, S, 
  per round al minuto finché non atterra, al sicuro. Se non 
  riesce ad atterrare dopo 1 minuto, la creatura cadrà per 
  la distanza rimanente.
- ",
+ ",|druido
 Charme su Persone,charm person,1° livello,ammaliamento,1 azione,9 metri,"V, S",1 ora,"Cerchi di affascinare un umanoide a gittata e che puoi 
  vedere. Egli deve effettuare un tiro salvezza su 
  Saggezza, e avrà vantaggio se sta combattendo con te 
@@ -819,7 +819,7 @@ Catena di Fulmini,chain lightning,6° livello,invocazione,1 azione,45 metri,"V, 
  un’ulteriore saetta parte dal primo bersaglio verso un 
  altro bersaglio per ogni livello dello slot sopra il 6°.
  ",|mago
-Cecità/Sordità,blindness/deafness,2° livello,negromanzia,1 azione,9 metri,V,1 minuto,"Puoi accecare o assordare un nemico. Scegli una 
+Cecità/Sordità,blindness/deafness,2° livello,necromanzia,1 azione,9 metri,V,1 minuto,"Puoi accecare o assordare un nemico. Scegli una 
  creatura a gittata e che puoi vedere. Il bersaglio deve 
  effettuare un tiro salvezza su Costituzione. Se lo 
  fallisce, il bersaglio è accecato o assordato (a tua 
@@ -852,7 +852,7 @@ Celare,sequester,7° livello,trasmutazione,1 azione,Contatto,"V, S, M (una polve
  includono “dopo 1.000 anni” o “quando il tarrasque si 
  risveglia”. Questo incantesimo termina anche qualora il 
  bersaglio subisca danni.
- ",
+ ",|mago
 Cerchio Magico,magic circle,3° livello,abiurazione,1 minuto,3 metri,"V, S, M (acqua sacra o argento e ferro inpolvere del valore di almeno 100 mo, che l’incantesimo 
  consuma)
  ",1 ora,"Crei un cilindro di energia magica di 3 metri di raggio e 
@@ -949,7 +949,7 @@ Chiaroveggenza,clairvoyance,3° livello,divinazione,1 ora,Contatto,"V, S, M (un 
  percepisce come un orbe intangibile e luminoso delle 
  dimensioni del tuo pugno.
  Clone
- 8° livello, negromanzia
+ 8° livello, necromanzia
  Questo incantesimo produce il duplicato inerte di una 
  creatura vivente come salvaguardia dalla morte. Questo 
  clone si forma all’interno di un recipiente sigillato e 
@@ -1138,7 +1138,7 @@ Conoscenza delle Leggende,legend lore,5° livello,divinazione,10 minuti,Personal
  L’informazione che riceverai sarà accurata, ma celata 
  magari in linguaggio metaforico.
  ",|mago|chierico|bardo
-Contagio,contagion,5° livello,negromanzia,1 azione,Contatto,"V, S",7 giorni,"Tramite il contatto puoi infliggere malattie. Effettua un 
+Contagio,contagion,5° livello,necromanzia,1 azione,Contatto,"V, S",7 giorni,"Tramite il contatto puoi infliggere malattie. Effettua un 
  attacco da mischia con incantesimo contro una creatura 
  a portata. Se colpisci, infetti la creatura con una 
  malattia a tua scelta tra quelle descritte di seguito.
@@ -1397,7 +1397,7 @@ Creare o Distruggere Acqua,create or destroy water,1° livello,trasmutazione,1 a
  cubo aumentano di 1,5 metri di spigolo, per ogni livello 
  dello slot sopra il 1°. 
  ",|druido|chierico
-Creare Non Morti,create undead,6° livello,negromanzia,1 azione,3 metri,"V, S, M (un vaso di terracotta pieno diterra di cimitero, un vaso di terracotta pieno di acqua 
+Creare Non Morti,create undead,6° livello,necromanzia,1 azione,3 metri,"V, S, M (un vaso di terracotta pieno diterra di cimitero, un vaso di terracotta pieno di acqua 
  salmastra, e un onice nero del valore di 50 mo per ogni 
  cadavere)
  ",Istantanea,"Puoi lanciare questo incantesimo solo di notte. Scegli 
@@ -1734,7 +1734,7 @@ Dissolvi Magie,dispel magic,3° livello,abiurazione,1 azione,36 metri,"V, S",Ist
  bersaglio il cui livello dell’incantesimo è uguale o 
  inferiore al livello dello slot incantesimo da te usato.
  ",|druido|mago|stregone|chierico|paladino|warlock|bardo
-Dito della Morte,finger of death,7° livello,negromanzia,1 azione,18 metri,"V, S",Istantanea,"Invii una scarica di energia negativa a una creatura a 
+Dito della Morte,finger of death,7° livello,necromanzia,1 azione,18 metri,"V, S",Istantanea,"Invii una scarica di energia negativa a una creatura a 
  gittata e che puoi vedere, provocandole profondo 
  dolore. Il bersaglio deve effettuare un tiro salvezza su 
  Costituzione. Il bersaglio subisce 7d8 + 30 danni 
@@ -1798,7 +1798,7 @@ Dominare Bestie,dominate beast,4° livello,ammaliamento,1 azione,18 metri,"V, S"
  Quando lanci questo incantesimo usando uno slot 
  incantesimo di 7° livello o più alto, la durata è 
  concentrazione, massimo 8 ore.
- ",
+ ",|druido|stregone|ranger
 Dominare Mostri,dominate monster,8° livello,ammaliamento,1 azione,18 metri,"V, S","Concentrazione, massimo 1 ora","Cerchi di affascinare una creatura a gittata che puoi 
  vedere. Essa deve superare un tiro salvezza su 
  Saggezza o restare affascinata per la durata, ricevendo 
@@ -1828,7 +1828,7 @@ Dominare Mostri,dominate monster,8° livello,ammaliamento,1 azione,18 metri,"V, 
  Ai Livelli Più Alti. Quando lanci questo incantesimo 
  usando uno slot incantesimo di 9° livello, la durata è 
  concentrazione, massimo 8 ore.
- ",
+ ",|bardo|mago|stregone|warlock
 Dominare Persone,dominate person,5° livello,ammaliamento,1 azione,18 metri,"V, S","Concentrazione, massimo 1 minuto","Cerchi di affascinare un umanoide a gittata che puoi 
  vedere. Esso deve superare un tiro salvezza su 
  Saggezza o restare affascinato per la durata, ricevendo 
@@ -1863,7 +1863,7 @@ Dominare Persone,dominate person,5° livello,ammaliamento,1 azione,18 metri,"V, 
  Quando lanci questo incantesimo usando uno slot 
  incantesimo di 8° livello o più alto, la durata è 
  concentrazione, massimo 8 ore.
- ",
+ ",|bardo|mago|stregone
 Eroismo,heroism,1° livello,ammaliamento,1 azione,Contatto,"V, S","Concentrazione, massimo 1 minuto","Una creatura consenziente con cui sei in contatto viene 
  infusa di coraggio. Fino al termine dell’incantesimo, la 
  creatura è immune all’essere spaventata e, all’inizio di 
@@ -1965,7 +1965,7 @@ Evoca Celestiali,conjure celestial,7° livello,evocazione,1 minuto,27 metri,"V, 
  Ai Livelli Più Alti. Quando lanci questo incantesimo 
  usando uno slot incantesimo di 9° livello, evochi un 
  celestiale di grado di sfida 5 o inferiore.
- ",
+ ",|chierico
 Evoca Creature Boschive,conjure woodland beings,4° livello,evocazione,1 azione,18 metri,"V, S, M (una bacca di agrifoglio percreature convocata)
  ","Concentrazione, massimo 1 ora","Evochi spiriti fatati che compaiono in spazi non occupati 
  a gittata e che puoi vedere. Scegli una delle seguenti 
@@ -2129,7 +2129,7 @@ Favore Divino,divine favor,1° livello,invocazione,1 azione bonus,Personale,"V, 
  termine dell’incantesimo, quando colpisce, la tua arma 
  infligge 1d4 danni radianti aggiuntivi.
  ",|paladino
-Ferire,harm,6° livello,negromanzia,1 azione,18 metri,"V, S",Istantanea,"Scateni una malattia virulenta su di una creatura a 
+Ferire,harm,6° livello,necromanzia,1 azione,18 metri,"V, S",Istantanea,"Scateni una malattia virulenta su di una creatura a 
  gittata che puoi vedere. Il bersaglio deve effettuare un 
  tiro salvezza su Costituzione. Il bersaglio subisce 14d6 
  danni necrotici se fallisce il tiro salvezza, o la metà di 
@@ -2161,7 +2161,7 @@ Fiamma Perenne,continual flame,2° livello,invocazione,1 azione,Contatto,"V, S, 
  produce calore né necessita ossigeno. Una fiamma 
  perpetua può essere celata o nascosta ma non può 
  essere smorzata né spenta.
- ",
+ ",|chierico|mago
 Fiamma Sacra,sacred flame,Trucchetto,invocazione,1 azione,18 metri,"V, S",Istantanea,"Una luminosità simile a quella prodotta da una fiaccola 
  discende su di una creatura a gittata che puoi vedere. Il 
  bersaglio deve superare un tiro salvezza su Destrezza 
@@ -2395,7 +2395,7 @@ Gabbia di Forza,forcecage,7° livello,invocazione,1 azione,30 metri,"V, S, M (po
  Questo incantesimo non può essere dissolto da dissolvi 
  magie.
  ",|mago|warlock|bardo
-Giara Magica,magic jar,6° livello,negromanzia,1 minuto,Personale,"V, S, M (una gemma, cristallo, reliquarioo qualche altro contenitore ornamentale del valore di
+Giara Magica,magic jar,6° livello,necromanzia,1 minuto,Personale,"V, S, M (una gemma, cristallo, reliquarioo qualche altro contenitore ornamentale del valore di
  almeno 500 mo)
  ",Finché a che dissolto,"Il tuo corpo entra in uno stato catatonico mentre la tua 
  anima lo abbandona ed entra nel contenitore da te 
@@ -2609,7 +2609,7 @@ Guscio Anti-Vita,antilife shell,5° livello,abiurazione,1 azione,Personale (ragg
  Se ti muovi in modo che una creatura soggetta venga 
  forzata ad attraversare la barriera, l’incantesimo 
  termina.
- ",
+ ",|druido
 Identificare,identify,1° livello,divinazione (rituale),1 minuto,Contatto,"V, S, M (una perla del valore di almeno100 mo e una piuma di gufo)
  ",Istantanea,"Scegli un oggetto con cui devi restare a contatto per 
  tutto il lancio dell’incantesimo. Se si tratta di un oggetto 
@@ -2864,7 +2864,7 @@ Imprigionare,Imprisonment,9° livello,abiurazione,1 azione,9 metri,"V, S, M (una
  bersaglio del primo lancio dell’incantesimo viene 
  immediatamente liberato dal suo vincolo.
  ",|mago|warlock
-Inaridire,blight,4° livello,negromanzia,1 azione,9 metri,"V, S",Istantanea,"Energia necromantica avvolge una creatura di tua 
+Inaridire,blight,4° livello,necromanzia,1 azione,9 metri,"V, S",Istantanea,"Energia necromantica avvolge una creatura di tua 
  scelta a gittata e che puoi vedere, deprivandola di linfa 
  e vitalità. Il bersaglio deve effettuare un tiro salvezza su 
  Costituzione. Se fallisce il tiro salvezza, il bersaglio 
@@ -2955,7 +2955,7 @@ Individuazione dei Pensieri,detect thoughts,2° livello,divinazione,1 azione,Per
  dell’incantesimo finché resta nella gittata, come 
  descritto sopra, anche se non puoi vederla.
  ",|mago|stregone|bardo
-Infliggi Ferite,inflict wounds,1° livello,negromanzia,1 azione,Contatto,"V, S",Istantanea,"Effettua un attacco in mischia con incantesimo contro 
+Infliggi Ferite,inflict wounds,1° livello,necromanzia,1 azione,Contatto,"V, S",Istantanea,"Effettua un attacco in mischia con incantesimo contro 
  una creatura a portata. Se colpisci, il bersaglio subisce 
  3d10 danni necrotici. 
  Ai Livelli Più Alti. Quando lanci questo incantesimo 
@@ -3289,7 +3289,7 @@ Localizza Animali e Piante,locate animals or plants,2° livello,divinazione (rit
  tuoi dintorni, apprendi la direzione e la distanza dalla 
  più vicina creatura o vegetale di quella specie, se ce ne 
  sono entro 7,5 chilometri.
- ",
+ ",|bardo|druido|ranger
 Localizza Creatura,locate creature,4° livello,divinazione,1 azione,Personale,"V, S, M (un pezzo di pelliccia di segugio)","Concentrazione, massimo 1 ora","Descrivi o nomina una creatura che ti è familiare. 
  Percepisci la direzione della posizione della creatura, 
  purché quella creatura si trovi entro 300 metri da te. Se 
@@ -3714,7 +3714,7 @@ Muro di Forza,wall of force,5° livello,invocazione,1 azione,36 metri,"V, S, M (
  Tuttavia, il muro è distrutto all’istante dall’incantesimo 
  disintegrazione. Il muro si estende anche sul Piano 
  Etereo, impedendo ai viaggiatori eterei di attraversarlo.
- ",
+ ",|mago
 Muro di Fuoco,wall of fire,4° livello,invocazione,1 azione,36 metri,"V, S, M (un piccolo pezzo di fosforo)","Concentrazione, massimo 1 minuto","Crei un muro di fuoco su di una superficie solida a 
  gittata. Puoi creare un muro lungo fino a 18 metri, alto 
  fino a 6 metri e spesso 30 centimetri, o un muro 
@@ -3883,7 +3883,7 @@ Muro Prismatico,prismatic wall,9° livello,abiurazione,1 azione,18 metri,"V, S",
  strato è distrutto dall’incantesimo dissolvi magie o da un 
  incantesimo simile di pari livello o più alto che possa 
  porre fine a incantesimi ed effetti magici.
- ",
+ ",|mago
 Muro di Spine,wall of thorns,6° livello,evocazione,1 azione,36 metri,"V, S, M (una manciata di spine)","Concentrazione, massimo 10 minuti","Crei un muro di cespugli robusti, malleabili e impigliati, 
  ricolmi di spine appuntite. Il muro compare a gittata su 
  di una superficie solida e rimane per la durata
@@ -4105,7 +4105,7 @@ Parlare con gli Animali,speak with animals,1° livello,divinazione (rituale),1 a
  GM potresti riuscire a convincere una bestia a farti un 
  piccolo favore.
  ",|druido|ranger|bardo
-Parlare con i Morti,speak with dead,3° livello,negromanzia,1 azione,3 metri,"V, S, M (incenso acceso)",10 minuti,"Conferisci un’apparenza di vita e intelligenza a un 
+Parlare con i Morti,speak with dead,3° livello,necromanzia,1 azione,3 metri,"V, S, M (incenso acceso)",10 minuti,"Conferisci un’apparenza di vita e intelligenza a un 
  cadavere a gittata, scelto da te, permettendogli di 
  rispondere alle domande che gli poni. Il cadavere deve 
  avere ancora una bocca e non può essere non morto. 
@@ -4456,7 +4456,7 @@ Proibizione,forbiddance,6° livello,abiurazione (rituale),10 minuti,Contatto,"V,
  componenti materiali saranno consumate durante 
  l’ultimo lancio.
  ",|chierico
-Proiezione Astrale,astral projection,9° livello,negromanzia,1 azione,3 metri,"V, S, M (per ogni creatura soggetta aquesto incantesimo, devi fornire un giacinto del valore 
+Proiezione Astrale,astral projection,9° livello,necromanzia,1 azione,3 metri,"V, S, M (per ogni creatura soggetta aquesto incantesimo, devi fornire un giacinto del valore 
  di almeno 1.000 mo e un lingotto d’argento 
  elegantemente scolpito del valore di almeno 100 mo, 
  tutti i quali sono consumati dall’incantesimo)
@@ -4534,7 +4534,7 @@ Protezione dai Veleni,protection from poison,2° livello,abiurazione,1 azione,Co
  Per la durata dell’incantesimo, il bersaglio ha vantaggio 
  ai tiri salvezza contro l’essere avvelenato, e ha 
  resistenza al danno da veleno.
- ",
+ ",|chierico|druido|paladino|ranger
 Punizione Marchiante,branding smite,2° livello,invocazione,1 azione bonus,Personale,V,"Concentrazione, massimo 1 minuto","La prossima volta che colpisci una creatura con un 
  attacco in mischia con arma nella durata 
  dell’incantesimo, l’arma riluce di un bagliore astrale 
@@ -4551,7 +4551,7 @@ Punizione Marchiante,branding smite,2° livello,invocazione,1 azione bonus,Perso
 Purificare Cibo e Bevande,purify food and water,1° livello,trasmutazione (rituale),1 azione,3 metri,"V, S",Istantanea,"Tutti i cibi e le bevande non magiche in una sfera di 1,5 
  metri di raggio, centrata in un punto a gittata di tua 
  scelta, vengono purificati e liberati da veleni e malattie.
- ",
+ ",|chierico|druido|paladino
 Raggio di Gelo,ray of frost,Trucchetto,invocazione,1 azione,18 metri,"V, S",Istantanea,"Un fascio gelato di luce azzurra colpisce una creatura a 
  gittata. Effettua un attacco a distanza con incantesimo 
  contro il bersaglio. Se colpisci, egli subisce 1d8 danni 
@@ -4561,7 +4561,7 @@ Raggio di Gelo,ray of frost,Trucchetto,invocazione,1 azione,18 metri,"V, S",Ista
  raggiungi il 5° livello (2d8), l’11° livello (3d8) e il 17° 
  livello (4d8).
  ",|mago|stregone
-Raggio di Affaticamento,ray of enfeeblement,2° livello,negromanzia,1 azione,18 metri,"V, S","Concentrazione, massimo 1 minuto","Un fascio nero di energia debilitante parte dal tuo dito 
+Raggio di Affaticamento,ray of enfeeblement,2° livello,necromanzia,1 azione,18 metri,"V, S","Concentrazione, massimo 1 minuto","Un fascio nero di energia debilitante parte dal tuo dito 
  diretto contro una creatura a gittata. Effettua un attacco 
  a distanza con incantesimo contro il bersaglio. Se 
  colpisci, il bersaglio infliggerà la metà dei danni con gli 
@@ -4721,7 +4721,7 @@ Respirare Sott’Acqua,water breathing,3° livello,trasmutazione,1 azione (ritua
  creature soggette mantengono anche il loro normale 
  metodo di respirazione.
  ",|druido|ranger|mago|stregone
-Resurrezione,resurrection,7° livello,negromanzia,1 ora,Contatto,"V, S, M (un diamante del valore dialmeno 1.000 mo, che l’incantesimo consuma)
+Resurrezione,resurrection,7° livello,necromanzia,1 ora,Contatto,"V, S, M (un diamante del valore dialmeno 1.000 mo, che l’incantesimo consuma)
  ",Istantanea,"Lanci l’incantesimo a contatto di una creatura morta da 
  non più di un secolo, che non è morta di vecchiaia e 
  che non sia non morta. Se la sua anima è libera e 
@@ -4762,7 +4762,7 @@ Resurrezione Pura,true resurrection,9° livello,trasmutazione,1 ora,Contatto,"V,
  il nome della creatura. La creatura riapparirà poi in uno 
  spazio non occupato di tua scelta, entro 3 metri da te.
  ",|druido|chierico
-Rianimare Morti,raise dead,5° livello,negromanzia,1 ora,Contatto,"V, S, M (una diamante del valore dialmeno 500 mo, che l’incantesimo consuma)
+Rianimare Morti,raise dead,5° livello,necromanzia,1 ora,Contatto,"V, S, M (una diamante del valore dialmeno 500 mo, che l’incantesimo consuma)
  ",Istantanea,"Riporti in vita una creatura morta, purché questa non 
  sia morta da più di 10 giorni. Se l’anima della creatura è 
  sia consenziente che libera di riunirsi al corpo, la 
@@ -4803,7 +4803,7 @@ Rimuovi Maledizione,remove curse,3° livello,abiurazione,1 azione,Contatto,"V, S
  l’incantesimo infrange la sintonia del proprietario con 
  l’oggetto così che lo possa rimuovere o gettare.
  ",|mago|chierico|paladino|warlock
-Rinascita,revivify,3° livello,negromanzia,1 azione,Contatto,"V, S, M (diamante del valore di 300 mo,che l’incantesimo consuma)
+Rinascita,revivify,3° livello,necromanzia,1 azione,Contatto,"V, S, M (diamante del valore di 300 mo,che l’incantesimo consuma)
  ",Istantanea,"Una creatura morta nell’ultimo minuto e con cui sei in 
  contatto, ritorna in vita con 1 punto ferita. Questo 
  incantesimo non può riportare in vita le persone morte 
@@ -4821,7 +4821,7 @@ Riparare,mending,Trucchetto,trasmutazione,1 minuto,Contatto,"V, S, M (due calami
  oggetto magico o un costrutto, ma non è in grado di 
  ripristinare le funzioni magiche di questi oggetti.
  ",|druido|mago|stregone|chierico|bardo
-Riposo Inviolato,gentle repose,2° livello,negromanzia (rituale),1 azione,Contatto,"V, S, M (un pizzico di sale e un pezzo dirame posto su ciascun occhio del cadavere, che 
+Riposo Inviolato,gentle repose,2° livello,necromanzia (rituale),1 azione,Contatto,"V, S, M (un pizzico di sale e un pezzo dirame posto su ciascun occhio del cadavere, che 
  devono restare lì per la durata)
  ",10 giorni,"Entri a contatto con un cadavere o altri resti. Per la 
  durata, il bersaglio è protetto dalla putrefazione e non 
@@ -4917,7 +4917,7 @@ Saltare,jump,1° livello,abiurazione,1 azione,Contatto,"V, S, M (la zampa poster
  al momento del lancio è triplicata fino al termine 
  dell’incantesimo.
  ",|druido|ranger|mago|stregone
-Salvare i Morenti,spare the dying,Trucchetto,necromazia,1 azione,Contatto,"V, S",Istantanea,"Una creatura a 0 punti ferita, con cui sei a contatto, 
+Salvare i Morenti,spare the dying,Trucchetto,necromanzia,1 azione,Contatto,"V, S",Istantanea,"Una creatura a 0 punti ferita, con cui sei a contatto, 
  diventa stabile. L’incantesimo non ha effetto su non 
  morti o costrutti.
  ",|chierico
@@ -5026,7 +5026,7 @@ Santuario Privato,private sanctum,4° livello,abiurazione,10 minuti,36 metri,"V,
  slot incantesimo di 5° livello, potresti proteggere un 
  cubo fino a 60 metri di spigolo.
  ",|mago
-Scagliare Maledizione,bestow curse,3° livello,negromanzia,1 azione,Contatto,"V, S","Concentrazione, massimo 1 minuto","Una creatura con cui sei a contatto deve superare un 
+Scagliare Maledizione,bestow curse,3° livello,necromanzia,1 azione,Contatto,"V, S","Concentrazione, massimo 1 minuto","Una creatura con cui sei a contatto deve superare un 
  tiro salvezza su Saggezza o restare maledetta per la 
  durata dell’incantesimo. Quando lanci questo 
  incantesimo, scegli la natura della maledizione tra le 
@@ -5455,7 +5455,7 @@ Sfocatura,blur,2° livello,illusione,1 azione,Personale,V,"Concentrazione, massi
  cieca o sono in grado di distinguere le illusioni, come 
  per visione del vero.
  ",|mago|stregone
-Sguardo Penetrante,eyebite,6° livello,negromanzia,1 azione,Personale,"V, S","Concentrazione, massimo 1 minuto","Per la durata dell’incantesimo, i tuoi occhi si tramutano 
+Sguardo Penetrante,eyebite,6° livello,necromanzia,1 azione,Personale,"V, S","Concentrazione, massimo 1 minuto","Per la durata dell’incantesimo, i tuoi occhi si tramutano 
  in un vuoto nero infuso di terribile potere. Una creatura 
  a tua scelta entro 18 metri da te e che puoi vedere, 
  deve superare un tiro salvezza su Saggezza o, per la 
@@ -6160,7 +6160,7 @@ Terreno Illusorio,hallucinatory terrain,4° livello,illusione,10 minuti,90 metri
  quello che è, la percepisce come una vaga immagine 
  sovrapposta al terreno.
  ",|druido|mago|warlock|bardo
-Tocco Gelido,chill touch,Trucchetto,negromanzia,1 azione,36 metri,"V, S",1 round,"Crei una scheletrica mano spettrale nello spazio di una 
+Tocco Gelido,chill touch,Trucchetto,necromanzia,1 azione,36 metri,"V, S",1 round,"Crei una scheletrica mano spettrale nello spazio di una 
  creatura a gittata. Effettua un attacco a distanza con 
  incantesimo contro la creatura, per aggredirla con il 
  gelo della morte. Se colpisci, il bersaglio subisce 1d8 
@@ -6174,7 +6174,7 @@ Tocco Gelido,chill touch,Trucchetto,negromanzia,1 azione,36 metri,"V, S",1 round
  raggiungi il 5° livello (2d8), l’11° livello (3d8) e il 17° 
  livello (4d8).
  ",|mago|stregone|warlock
-Tocco Vampirico,vampiric touch,3° livello,negromanzia,1 azione,Personale,"V, S","Concentrazione, massimo 1 minuto","Il contatto con la tua mano avvolta dall’ombra può 
+Tocco Vampirico,vampiric touch,3° livello,necromanzia,1 azione,Personale,"V, S","Concentrazione, massimo 1 minuto","Il contatto con la tua mano avvolta dall’ombra può 
  risucchiare la forza vitale altrui per curare le tue ferite. 
  Effettua un attacco in mischia con incantesimo contro 
  una creatura a portata. Se colpisci, il bersaglio subisce
@@ -6498,7 +6498,7 @@ Visione del Vero,true sight,6° livello,divinazione,1 azione,Contatto,"V, S, M (
  porte segrete nascoste dalla magia, e può vedere nel 
  Piano Etereo, fino a una gittata di 36 metri.
  ",|mago|stregone|chierico|warlock|bardo
-Vita Falsata,false life,1° livello,negromanzia,1 azione,Personale,"V, S, M (un piccolo ammontare di alcoolo spirito distillato)
+Vita Falsata,false life,1° livello,necromanzia,1 azione,Personale,"V, S, M (un piccolo ammontare di alcoolo spirito distillato)
  ",1 ora,"Potenziandoti con una parvenza necromantica di 
  vitalità, ottieni 1d4 + 4 punti ferita temporanei per la 
  durata.
@@ -6544,6 +6544,4 @@ Zona di Verità,zone of truth,2° livello,ammaliamento,1 azione,18 metri,"V, S",
  domande a cui risponderebbe normalmente con una 
  bugia. Questa creatura può dare risposte elusive 
  purché rimanga entro i confini della verità.
- 
  ",|chierico|paladino|bardo
-,,,,,,,,,|druido|ranger|mago|stregone|chierico|paladino|warlock|bardo
