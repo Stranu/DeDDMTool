@@ -1,0 +1,68 @@
+Name,Original Name,Description
+Accecato,Blinded,"- Una creatura accecata non può vedere e fallisce automaticamente tutte le prove di  caratteristica che richiedano l'uso della vista.
+- I tiri per colpire contro la creatura hanno vantaggio, mentre i tiri per colpire della creatura hanno svantaggio."
+Affascinato,Charmed,"- Una creatura affascinata non può attaccare o prendere a bersaglio chi l'ha affascinata con capacita speciali o effetti magici dannosi.
+- L'affascinatore ha vantaggio su qualsiasi prova di caratteristica per interagire socialmente con la creatura."
+Afferrato,Grappled,"La velocità di una creatura afferrata diventa 0, e non può beneficiare da alcun bonus alla sua velocità.
+- La condizione termina se colui che ha iniziato l'attacco di lottare è inabile (vedi quella condizione).
+- La condizione termina anche se un effetto allontana la creatura afferrata dalla portata di colui che ha iniziato l'attacco o l'effetto di lottare, come quando una creatura viene scagliata via dall'incantesimo onda di tuono."
+Assordato,Deafened,Una creatura assordata non può udire e fallisce automaticamente tutte le prove di caratteristica basate sull'udito.
+Avvelenato,Poisoned,Una creatura avvelenata ha svantaggio sui tiri per colpire e sulle prove di caratteristica.
+Inabile,Incapacitated,Una creatura inabile non può effettuare azioni o reazioni.
+Intralciato,Restrained,"- La velocità di una creatura intralciata diventa 0, e non può beneficiare da alcun bonus alla sua velocità.
+- I tiri per colpire contro la creatura hanno vantaggio, e i tiri per colpire della creatura hanno svantaggio.
+- La creatura ha svantaggio sui tiri salvezza su Destrezza"
+Invisibile,Invisible,"- Una creatura invisibile è impossibile da vedere senza l'aiuto della magia o di un senso speciale. Al fine di nascondersi, la creatura è oscurata pesantemente. La posizione della creatura può essere individuata da qualsiasi rumore prodotto da essa o dalle impronte.
+- I tiri per colpire contro la creatura hanno svantaggio, mentre i tiri per colpire della creatura hanno vantaggio."
+Paralizzato,Paralyzed,"- Una creatura paralizzata è inabile (vedi quella condizione) e non può muoversi nè parlare.
+- La creatura fallisce automaticamente i tiri salvezza su Forza e Destrezza.
+- I tiri per colpire contro la creatura hanno vantaggio.
+- Qualsiasi attacco che colpisca la creatura è automaticamente un colpo critico, se l'attaccante si trova entro 1,5 metri da essa."
+Pietrificato,Petrified,"Una creatura pietrificata è trasformata, insieme a qualsiasi oggetto non magico che indossa o trasporta, in una sostanza solida inanimata (di solito pietra). Il suo peso aumenta di dieci volte tanto e smette di invecchiare.
+- La creatura è inabile (vedi quella condizione), non può muoversi o parlare, ed è inconsapevole di cosa accada nei dintorni.
+- I tiri per colpire contro la creatura hanno vantaggio.
+- La creatura fallisce automaticamente i tiri salvezza su Forza e Destrezza.
+- La creatura è resistente a tutti i danni.
+- La creatura è immune ai veleni e le malattie, sebbene i veleni e le malattie già presenti nel suo sistema vengano sospesi, non neutralizzati."
+Privo di sensi,Unconscious,"- Una creatura svenuta è inabile (vedi la condizione), non può muoversi o parlare, ed è inconsapevole di cosa accada nei dintorni.
+- La creatura lascia cadere qualsiasi cosa impugni e cade prona.
+- La creatura fallisce automaticamente i tiri salvezza su Forza e Destrezza.
+- I tiri per colpire contro la creatura hanno vantaggio.
+- Qualsiasi attacco che colpisca la creatura è automaticamente un colpo critico se l'attaccante si trova entro 1,5 metri da essa."
+Prono,Prone,"- L'unica opzione di movimento per una creatura prona è di strisciare, a meno che non si rialzi e ponga termina alla sua condizione.
+- La creatura ha svantaggio sui tiri per colpire.
+- Un tiro per colpire contro la creatura ha vantaggio, se l'attaccante si trova entro 1,5 metri dalla creatura. Altrimenti, il tiro per colpire ha svantaggio."
+Spaventato,Frightened,"- Una creatura spaventata ha svantaggio sulle prove di caratteristica e i tiri per colpire mentre la fonte della sua paura è nella linea di visuale.
+- La creatura non può avvicinarsi volontariamente alla fonte della sua paura."
+Stordito,Stunned,"- Una creatura stordita è inabile (vedi la condizione), non può muoversi e può parlare a fatica.
+- La creatura fallisce automaticamente i tiri salvezza su Forza e Destrezza.
+- I tiri per colpire contro la creatura hanno vantaggio."
+Sfinimento,Exhaustion,"Alcune capacità speciali e ambienti pericolosi, come la fame 
+e gli effetti a lungo termine delle temperature gelide o torride, 
+possono portare ad una condizione speciale detta sfinimento. 
+Lo sfinimento viene misurato in sei livelli. Un effetto può
+imporre ad una creatura uno o più livelli di sfinimento, come 
+specificato nella descrizione dell'effetto.
+Livello Effetto
+1 Svantaggio sulle prove di caratteristica
+2 Velocità dimezzata
+3
+Svantaggio sui tiri per colpire e sui tiri 
+salvezza
+4 Punti ferita massimi dimezzati
+5 Velocità ridotta a 0
+6 Morte
+Se una creatura già sfinita subisce un altro effetto che provoca 
+sfinimento, il suo livello attuale di sfinimento aumenta 
+Dell'ammontare specificato nella descrizione dell'effetto.
+Una creatura subisce l'effetto del suo attuale livello di 
+sfinimento oltre che quelli di tutti i livelli inferiori. Ad 
+esempio, una creatura che soffre sfinimento di livello 2 ha la 
+velocità dimezzata e svantaggio alle prove di caratteristica.
+Un effetto che rimuove lo sfinimento riduce il suo livello 
+come specificato nella descrizione dell'effetto, e gli effetti 
+dello sfinimento hanno termine se il livello di sfinimento 
+della creatura viene ridotto sotto l'1.
+Terminare un riposo lungo riduce il livello di sfinimento di 
+una creatura di 1, purchè quella creatura abbia potuto 
+mangiare e bere."
