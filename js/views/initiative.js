@@ -81,6 +81,8 @@ export function renderInitiative(root, api) {
       }
     }
     if (c.save) sub.appendChild(el('span', { text: `TS ${c.save}` }));
+    if (c.creatureType) sub.appendChild(el('span', { text: c.creatureType }));
+    if (c.cr !== '' && c.cr != null) sub.appendChild(el('span', { text: `GS ${c.cr}` }));
     if (c.notes) sub.appendChild(el('span', { text: '📝 Note' }));
     const conditionLine = el('div', { class: 'c-conditions' });
     for (const conditionId of c.conditions || []) {
@@ -340,12 +342,11 @@ function spellSection(c, api) {
 // ---------- Add / roster drawer ----------
 function openAddMenu(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi manualmente oppure scegli una scheda dal roster o dall’archivio.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi un combattente temporaneo all’iniziativa oppure cerca una scheda esistente di PG, PNG ricorrenti o Mostri/PNG.' }));
   const form = el('form', {});
   const name = el('input', { class: 'input', required: '', placeholder: 'Nome (es. Goblin 1)' });
   const kind = el('select', { class: 'input', style: 'margin-top:8px' }, [
-    el('option', { value: 'monster', text: 'Mostro' }),
-    el('option', { value: 'ally', text: 'PNG' }),
+    el('option', { value: 'monster', text: 'Mostro/PNG' }),
     el('option', { value: 'pc', text: 'PG' })
   ]);
   const submit = el('button', { class: 'btn primary block', style: 'margin-top:10px', type: 'submit', html: ICON.plus + '<span>Aggiungi all’iniziativa</span>' });
@@ -368,20 +369,20 @@ function openAddMenu(api) {
   const sources = () => [
     ...api.state.roster.pcs.map((x) => ({ ...x, kind: 'pc' })),
     ...api.state.roster.allies.map((x) => ({ ...x, kind: 'ally' })),
-    ...api.state.roster.archive
+    ...api.state.roster.archive.map((x) => ({ ...x, source: 'archive' }))
   ];
   function drawQuickList() {
     const query = fold(quickSearch.value);
     const matches = sources().filter((item) => !query || fold(item.name).includes(query));
     quickList.innerHTML = '';
     if (!matches.length) {
-      quickList.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: query ? 'Nessun elemento trovato.' : 'Roster e archivio sono vuoti.' }));
+      quickList.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: query ? 'Nessun elemento trovato.' : 'Roster e archivio Mostri/PNG sono vuoti.' }));
       return;
     }
     for (const item of matches) {
       const button = el('button', { class: 'list-linkitem quick-add-item', style: 'width:100%;text-align:left', type: 'button' }, [
         el('span', { class: 'grow', text: item.name }),
-        el('span', { class: 'badge', text: KIND_LABELS[item.kind] || 'Mostro' }),
+        el('span', { class: 'badge', text: item.source === 'archive' ? 'Mostri/PNG' : (KIND_LABELS[item.kind] || 'Mostri/PNG') }),
         el('span', { class: 'chip on', text: 'Iniziativa' })
       ]);
       button.addEventListener('click', () => {
@@ -399,7 +400,7 @@ function openAddMenu(api) {
 
 function openRoster(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'PG e PNG ricorrenti restano disponibili tra gli incontri. L’archivio conserva schede riutilizzabili di mostri e PNG con statistiche e magie.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'PG e PNG ricorrenti restano disponibili tra gli incontri. Per le schede di mostri e PNG usa la sezione Mostri.' }));
 
   const addRosterForm = (kind, title, collection) => {
     const section = el('section', {});
@@ -427,32 +428,6 @@ function openRoster(api) {
 
   const lists = el('div', {});
   body.appendChild(lists);
-
-  const archiveTitle = el('div', { class: 'section-title', text: 'Archivio mostri / PNG' });
-  const archiveHint = el('p', { class: 'muted', style: 'font-size:13px', text: 'Salva schede complete e richiamale nell’iniziativa come copie indipendenti.' });
-  const archiveForm = el('form', { class: 'row wrap' });
-  const archiveName = el('input', { class: 'input grow', required: '', placeholder: 'Nome scheda (es. Goblin)' });
-  const archiveKind = el('select', { class: 'input archive-kind', style: 'max-width:130px' }, [
-    el('option', { value: 'monster', text: 'Mostro' }),
-    el('option', { value: 'ally', text: 'PNG' })
-  ]);
-  const archiveAdd = el('button', { class: 'btn primary', type: 'submit', html: ICON.plus + '<span>Salva</span>' });
-  archiveForm.append(archiveName, archiveKind, archiveAdd);
-  const archiveSearch = el('input', { class: 'input', type: 'search', style: 'margin-top:8px', placeholder: 'Cerca nell’archivio…', 'aria-label': 'Cerca archivio mostri e PNG' });
-  const archiveList = el('div', { style: 'margin-top:8px' });
-  body.append(archiveTitle, archiveHint, archiveForm, archiveSearch, archiveList);
-
-  archiveForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const name = archiveName.value.trim();
-    if (!name) return;
-    api.state.roster.archive.push(makeCombatant(name, archiveKind.value));
-    api.save();
-    archiveName.value = '';
-    drawArchiveList();
-    api.toast(`${name} salvato nell’archivio`);
-  });
-  archiveSearch.addEventListener('input', drawArchiveList);
 
   function redrawRoster() {
     lists.innerHTML = '';
@@ -483,60 +458,31 @@ function openRoster(api) {
       lists.appendChild(row);
     }
   }
-  function drawArchiveList() {
-    const query = fold(archiveSearch.value);
-    const matches = api.state.roster.archive.filter((item) => !query || fold(item.name).includes(query));
-    archiveList.innerHTML = '';
-    if (!matches.length) {
-      archiveList.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: query ? 'Nessun elemento trovato.' : 'Archivio vuoto.' }));
-      return;
-    }
-    for (const item of matches) {
-      const row = el('div', { class: 'list-linkitem archive-item' });
-      const info = el('div', { class: 'grow' }, [
-        el('div', { style: 'font-weight:600', text: item.name }),
-        el('div', { class: 'muted', style: 'font-size:11px', text: archiveSummary(item) })
-      ]);
-      const edit = el('button', { class: 'chip', type: 'button', text: 'Modifica' });
-      edit.addEventListener('click', () => openArchiveDrawer(item, api));
-      const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
-      add.addEventListener('click', () => {
-        addToEncounter(api, cloneCombatant(item));
-        api.toast(`${item.name} aggiunto all’iniziativa`);
-        api.refresh('initiative');
-      });
-      const remove = el('button', { class: 'dot-btn', type: 'button', title: 'Rimuovi dall’archivio', html: ICON.trash });
-      remove.addEventListener('click', () => {
-        if (!confirm(`Rimuovere "${item.name}" dall’archivio?`)) return;
-        const index = api.state.roster.archive.indexOf(item);
-        if (index >= 0) api.state.roster.archive.splice(index, 1);
-        api.save();
-        drawArchiveList();
-      });
-      row.append(info, edit, add, remove);
-      archiveList.appendChild(row);
-    }
-  }
   redrawRoster();
-  drawArchiveList();
-  api.openDrawer('Roster e archivio', body);
+  api.openDrawer('Roster PG e PNG', body);
 }
 
-function openArchiveDrawer(entry, api) {
+export function openArchiveDrawer(entry, api, returnView = 'initiative') {
   const body = el('div', {});
-  const saveArchive = () => api.save();
+  const saveArchive = () => { api.save(); api.refresh(returnView); };
   body.appendChild(el('div', { class: 'field' }, [
     el('label', { text: 'Nome scheda' }),
     inputField(entry.name, 'text', (value) => { entry.name = value; saveArchive(); })
   ]));
 
-  const kind = el('select', { class: 'input' }, [
-    el('option', { value: 'monster', text: 'Mostro' }),
-    el('option', { value: 'ally', text: 'PNG' })
-  ]);
-  kind.value = entry.kind === 'ally' ? 'ally' : 'monster';
-  kind.addEventListener('change', () => { entry.kind = kind.value; saveArchive(); });
-  body.appendChild(el('div', { class: 'field' }, [el('label', { text: 'Tipo' }), kind]));
+  const crInput = inputField(entry.cr, 'number', (value) => { entry.cr = value === '' ? '' : Number(value); saveArchive(); }, '0');
+  crInput.step = 'any';
+  crInput.min = '0';
+  body.appendChild(el('div', { class: 'row' }, [
+    el('div', { class: 'field grow' }, [
+      el('label', { text: 'Tipo creatura' }),
+      inputField(entry.creatureType, 'text', (value) => { entry.creatureType = value; saveArchive(); }, 'es. umanoide, bestia, non morto')
+    ]),
+    el('div', { class: 'field cr-field' }, [
+      el('label', { text: 'GS' }),
+      crInput
+    ])
+  ]));
 
   const stats = el('div', { class: 'stat-grid' });
   stats.append(
@@ -555,39 +501,33 @@ function openArchiveDrawer(entry, api) {
   ]));
   if (api.state.spells.length) body.appendChild(spellSection(entry, api));
 
-  const remove = el('button', { class: 'btn danger block', style: 'margin-top:20px', html: ICON.trash + '<span>Rimuovi dall’archivio</span>' });
+  const remove = el('button', { class: 'btn danger block', style: 'margin-top:20px', html: ICON.trash + '<span>Rimuovi dalla sezione Mostri/PNG</span>' });
   remove.addEventListener('click', () => {
     if (!confirm(`Rimuovere "${entry.name}" dall’archivio?`)) return;
     const index = api.state.roster.archive.indexOf(entry);
     if (index >= 0) api.state.roster.archive.splice(index, 1);
+    api.state.hasMonsters = api.state.roster.archive.length > 0;
+    api.updateTabs();
     api.save();
     api.closeDrawer();
-    api.refresh('initiative');
+    api.refresh(returnView);
   });
   body.appendChild(remove);
-  api.openDrawer(`Archivio: ${entry.name}`, body);
-}
-
-function archiveSummary(item) {
-  const stats = [];
-  if (item.ac !== '' && item.ac != null) stats.push(`CA ${item.ac}`);
-  if (item.hpMax !== '' && item.hpMax != null) stats.push(`PF ${item.hpMax}`);
-  if (item.knownSpells?.length) stats.push(`${item.knownSpells.length} magie`);
-  return `${KIND_LABELS[item.kind] || 'Mostro'}${stats.length ? ` · ${stats.join(' · ')}` : ''}`;
+  api.openDrawer(`Mostri/PNG: ${entry.name}`, body);
 }
 
 // ---------- Data helpers ----------
-function makeCombatant(name, kind = 'monster') {
+export function makeCombatant(name, kind = 'monster') {
   return {
     id: uid(), name, kind,
-    initiative: null, ac: '', hpCurrent: '', hpMax: '', save: '', notes: '', dead: false,
+    initiative: null, ac: '', hpCurrent: '', hpMax: '', save: '', notes: '', creatureType: '', cr: '', dead: false,
     conditions: [], conditionNames: {}, affectedSpells: [], knownSpells: []
   };
 }
 
-function cloneCombatant(source) {
+export function cloneCombatant(source) {
   const copy = makeCombatant(source.name, source.kind);
-  for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes']) copy[key] = source[key] ?? '';
+  for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? '';
   copy.conditions = [...(source.conditions || [])];
   copy.conditionNames = { ...(source.conditionNames || {}) };
   copy.affectedSpells = (source.affectedSpells || []).map((x) => ({ ...x }));
@@ -595,7 +535,7 @@ function cloneCombatant(source) {
   return copy;
 }
 
-function addToEncounter(api, combatant) {
+export function addToEncounter(api, combatant) {
   api.state.encounter.combatants.push(combatant);
   sortCombatants(api.state.encounter);
   api.save();
@@ -641,6 +581,8 @@ function normalizeCombatant(c) {
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
   if (c.initiative === undefined) c.initiative = null;
   if (c.notes === undefined) c.notes = '';
+  if (c.creatureType === undefined) c.creatureType = '';
+  if (c.cr === undefined) c.cr = '';
   if (c.dead === undefined) c.dead = false;
 }
 

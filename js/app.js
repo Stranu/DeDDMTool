@@ -5,6 +5,7 @@ import { renderInitiative } from './views/initiative.js';
 import { renderConditions } from './views/conditions.js';
 import { renderSpells } from './views/spells.js';
 import { renderSettings } from './views/settings.js';
+import { renderMonsters } from './views/monsters.js';
 
 // ---------------- Stato condiviso ----------------
 // encounter: stato del gestore iniziativa (persistito su ogni evento).
@@ -16,13 +17,15 @@ export const state = {
   conditions: [],
   spells: [],
   hasConditions: false,
-  hasSpells: false
+  hasSpells: false,
+  hasMonsters: false
 };
 
 const views = {
   initiative: { el: $('#view-initiative'), render: renderInitiative },
   conditions: { el: $('#view-conditions'), render: renderConditions },
   spells: { el: $('#view-spells'), render: renderSpells },
+  monsters: { el: $('#view-monsters'), render: renderMonsters },
   settings: { el: $('#view-settings'), render: renderSettings }
 };
 
@@ -66,6 +69,8 @@ function goTo(view) {
 function updateTabs() {
   $('#tab-conditions').hidden = !state.hasConditions;
   $('#tab-spells').hidden = !state.hasSpells;
+  // Mostri/PNG resta sempre accessibile anche quando l'archivio è vuoto.
+  $('#tab-monsters').hidden = false;
   // Se ero su una tab ora nascosta, torna all'iniziativa.
   if ((current === 'conditions' && !state.hasConditions) ||
       (current === 'spells' && !state.hasSpells)) {
@@ -104,6 +109,7 @@ export async function reloadDatasets() {
   state.spells = spells || [];
   state.hasConditions = (cc || 0) > 0;
   state.hasSpells = (sc || 0) > 0;
+  state.hasMonsters = Boolean(state.roster?.archive?.length);
   updateTabs();
 }
 

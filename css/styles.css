@@ -239,3 +239,17 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
   .init-toolbar .btn { gap: 4px; padding-left: 4px; padding-right: 4px; font-size: 11px; }
   .init-toolbar .btn svg { width: 15px; height: 15px; }
 }
+
+/* Pannelli filtri: chiusi occupano solo il pulsante di apertura; quando aperti
+   sono chiaramente separati dalla barra di ricerca. Riutilizzabile per future viste. */
+.filter-panel {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elev);
+}
+.filter-panel[hidden] { display: none; }
+
+.filter-field { flex: 1 1 160px; min-width: 0; }
+.filter-field label { display: block; color: var(--text-dim); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.cr-field { flex: 0 0 82px; }

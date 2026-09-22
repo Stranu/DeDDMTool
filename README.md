@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v2` a `dm-toolkit-v3`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v3` a `dm-toolkit-v4`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 
@@ -41,7 +41,7 @@ Il parser gestisce campi tra virgolette, virgole e descrizioni su più righe. I 
 ## Funzioni principali
 
 - Roster separato per PG e PNG ricorrenti.
-- Archivio persistente di mostri e PNG con ricerca, CA, PF, TS, note, magie conosciute e aggiunta rapida all’iniziativa come copia indipendente.
+- Archivio persistente nella sezione **Mostri/PNG** per le schede riutilizzabili, con ricerca per nome, tipo creatura e GS, CA, PF, TS, note, magie conosciute e aggiunta rapida all’iniziativa come copia indipendente.
 - Iniziativa con aggiunta manuale di mostri/PNG/PG, ordinamento automatico e avanzamento del turno.
 - Dettagli combattente: CA, PF attuali/massimi, tiri salvezza e note su attacchi/capacità.
 - Condizioni associate a ogni combattente.

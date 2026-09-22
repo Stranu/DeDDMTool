@@ -31,15 +31,18 @@ export function renderSpells(root, api) {
     placeholder: 'Cerca per nome (IT/EN) o testo…', 'aria-label': 'Cerca magia'
   });
 
-  const toggleFiltersBtn = el('button', { class: 'btn sm ghost', html: ICON.search + '<span>Filtri</span>' });
-  const resetBtn = el('button', { class: 'btn sm ghost', html: ICON.reset + '<span>Reset</span>' });
+  const toggleFiltersBtn = el('button', {
+    class: 'btn sm ghost', type: 'button', title: 'Mostra o nascondi filtri',
+    'aria-expanded': 'false', 'aria-controls': 'spell-filters', html: ICON.search
+  });
+  const resetBtn = el('button', { class: 'btn sm ghost', type: 'button', html: ICON.reset + '<span>Reset</span>' });
 
   searchWrap.appendChild(el('div', { class: 'row' }, [
     el('div', { class: 'grow' }, [search]),
     toggleFiltersBtn
   ]));
 
-  const filtersBox = el('div', { class: 'filters', hidden: filtersEmpty() ? true : false });
+  const filtersBox = el('div', { class: 'filters filter-panel', id: 'spell-filters', hidden: true });
 
   filtersBox.appendChild(chipGroup('Livello', levels, filters.levels, (v) => levelLabel(v)));
   filtersBox.appendChild(chipGroup('Classe', classes, filters.classes, (v) => cap(v)));
@@ -55,7 +58,17 @@ export function renderSpells(root, api) {
   const list = el('div', {});
   root.appendChild(list);
 
-  toggleFiltersBtn.addEventListener('click', () => { filtersBox.hidden = !filtersBox.hidden; });
+  function updateFilterToggle() {
+    const active = filters.levels.size + filters.classes.size + filters.schools.size;
+    toggleFiltersBtn.innerHTML = ICON.search;
+    toggleFiltersBtn.appendChild(el('span', { text: active ? `Filtri (${active})` : 'Filtri' }));
+    toggleFiltersBtn.setAttribute('aria-expanded', String(!filtersBox.hidden));
+  }
+
+  toggleFiltersBtn.addEventListener('click', () => {
+    filtersBox.hidden = !filtersBox.hidden;
+    updateFilterToggle();
+  });
   resetBtn.addEventListener('click', () => {
     filters.q = ''; filters.levels.clear(); filters.classes.clear(); filters.schools.clear();
     search.value = '';
@@ -63,6 +76,7 @@ export function renderSpells(root, api) {
   });
 
   search.addEventListener('input', debounce(() => { filters.q = search.value; draw(); }, 140));
+  updateFilterToggle();
 
   function draw() {
     const results = applyFilters(state.spells, filters);
@@ -87,6 +101,7 @@ export function renderSpells(root, api) {
         if (activeSet.has(v)) activeSet.delete(v); else activeSet.add(v);
         chip.classList.toggle('on');
         draw();
+        updateFilterToggle();
       });
       g.appendChild(chip);
     }
@@ -149,9 +164,6 @@ export function applyFilters(spells, f) {
   });
 }
 
-function filtersEmpty() {
-  return !filters.levels.size && !filters.classes.size && !filters.schools.size;
-}
 function activeFilterLabel() {
   const n = filters.levels.size + filters.classes.size + filters.schools.size;
   return n ? ` · ${n} filtr${n === 1 ? 'o' : 'i'} attiv${n === 1 ? 'o' : 'i'}` : '';
