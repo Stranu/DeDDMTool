@@ -212,7 +212,9 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .toast.show { opacity: 1; }
 .toast[hidden] { display: none; }
 
-.list-linkitem { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; background: var(--bg); }
+.list-linkitem { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; background: var(--bg); color: var(--text); font: inherit; }
+.list-linkitem.quick-add-item { min-height: 44px; }
+.list-linkitem.archive-item { flex-wrap: wrap; }
 .list-linkitem .grow { cursor: pointer; }
 .list-linkitem.cast { border-color: var(--accent-2); background: rgba(201,162,75,0.08); }
 .mini-title { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin: 16px 0 6px; }
@@ -223,11 +225,17 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 details.help summary { cursor: pointer; color: var(--accent); font-size: 14px; }
 code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
 
-/* Layout compatto per smartphone stretti: mantieni tutti i controlli raggiungibili
-   senza overflow orizzontale, lasciando le descrizioni complete nel tooltip. */
+/* Layout compatto per smartphone stretti: mantiene le etichette leggibili
+   disponendo il comando principale su una riga e gli altri tre sotto. */
 @media (max-width: 430px) {
-  .init-toolbar { gap: 5px; }
-  .init-toolbar .btn { width: 42px; min-width: 42px; padding: 8px 5px; }
-  .init-toolbar .btn.grow { width: auto; flex: 1; }
-  .init-toolbar .btn span { display: none; }
+  .init-toolbar { gap: 5px; flex-wrap: wrap; }
+  .init-toolbar .btn { min-width: 0; padding: 9px 7px; font-size: 12px; white-space: nowrap; }
+  .init-toolbar .btn.grow { flex: 1 1 100%; }
+  .init-toolbar .btn:not(.grow) { flex: 1 1 calc(33.333% - 4px); }
+  .init-toolbar .btn svg { width: 16px; height: 16px; }
+}
+
+@media (max-width: 350px) {
+  .init-toolbar .btn { gap: 4px; padding-left: 4px; padding-right: 4px; font-size: 11px; }
+  .init-toolbar .btn svg { width: 15px; height: 15px; }
 }

@@ -81,6 +81,7 @@ export function renderInitiative(root, api) {
       }
     }
     if (c.save) sub.appendChild(el('span', { text: `TS ${c.save}` }));
+    if (c.notes) sub.appendChild(el('span', { text: '📝 Note' }));
     const conditionLine = el('div', { class: 'c-conditions' });
     for (const conditionId of c.conditions || []) {
       const condition = state.conditions.find((item) => item.id === conditionId);
@@ -105,6 +106,7 @@ export function renderInitiative(root, api) {
     const deleteBtn = el('button', { class: 'dot-btn', title: 'Rimuovi dall’iniziativa', html: ICON.trash });
     deleteBtn.addEventListener('click', (event) => {
       event.stopPropagation();
+      if (!confirm(`Rimuovere "${c.name}" dall’iniziativa? I dati della scheda archivio/roster non verranno modificati.`)) return;
       state.encounter.combatants = state.encounter.combatants.filter((item) => item.id !== c.id);
       if (state.encounter.activeId === c.id) state.encounter.activeId = null;
       api.save();
@@ -119,8 +121,7 @@ export function renderInitiative(root, api) {
     return el('div', { class: 'empty' }, [
       el('div', { html: ICON.play }),
       el('div', { text: 'Nessun combattente nell’iniziativa.' }),
-      el('div', { class: 'muted', text: 'Aggiungi PG, PNG ricorrenti o mostri per iniziare.' }),
-      el('button', { class: 'btn primary', style: 'margin-top:14px', html: ICON.plus + '<span>Aggiungi combattente</span>', onclick: () => openAddMenu(api) })
+      el('div', { class: 'muted', text: 'Usa il pulsante Aggiungi in alto per inserire PG, PNG o mostri.' })
     ]);
   }
 
@@ -167,8 +168,8 @@ function openCombatantDrawer(c, api) {
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
-    el('label', { text: 'Tiri salvezza / note' }),
-    inputField(c.save, 'text', (value) => { c.save = value; saveAndRefresh(); }, 'es. For +5, Des +2')
+    el('label', { text: 'Note / attacchi / capacità' }),
+    textareaField(c.notes, (value) => { c.notes = value; saveAndRefresh(); }, 'es. Multiattacco, morso +5, danni 1d6+3')
   ]));
 
   if (state.conditions.length) body.appendChild(conditionSection(c, api));
@@ -176,6 +177,7 @@ function openCombatantDrawer(c, api) {
 
   const remove = el('button', { class: 'btn danger block', style: 'margin-top:20px', html: ICON.trash + '<span>Rimuovi dall’iniziativa</span>' });
   remove.addEventListener('click', () => {
+    if (!confirm(`Rimuovere "${c.name}" dall’iniziativa? I dati della scheda archivio/roster non verranno modificati.`)) return;
     state.encounter.combatants = state.encounter.combatants.filter((item) => item.id !== c.id);
     if (state.encounter.activeId === c.id) state.encounter.activeId = null;
     api.save();
@@ -338,7 +340,7 @@ function spellSection(c, api) {
 // ---------- Add / roster drawer ----------
 function openAddMenu(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi un combattente manualmente oppure scegli un elemento dal roster.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi manualmente oppure scegli una scheda dal roster o dall’archivio.' }));
   const form = el('form', {});
   const name = el('input', { class: 'input', required: '', placeholder: 'Nome (es. Goblin 1)' });
   const kind = el('select', { class: 'input', style: 'margin-top:8px' }, [
@@ -357,33 +359,54 @@ function openAddMenu(api) {
     api.refresh('initiative');
   });
   body.appendChild(form);
-  body.appendChild(el('div', { class: 'mini-title', text: 'Aggiunta rapida dal roster' }));
-  const roster = [...api.state.roster.pcs.map((x) => ({ ...x, kind: 'pc' })), ...api.state.roster.allies.map((x) => ({ ...x, kind: 'ally' }))];
-  if (!roster.length) body.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Il roster è vuoto.' }));
-  for (const item of roster) {
-    const button = el('button', { class: 'list-linkitem', style: 'width:100%;text-align:left', type: 'button' }, [
-      el('span', { class: 'grow', text: item.name }),
-      el('span', { class: 'badge', text: KIND_LABELS[item.kind] })
-    ]);
-    button.addEventListener('click', () => {
-      addToEncounter(api, cloneCombatant(item));
-      api.closeDrawer();
-      api.refresh('initiative');
-    });
-    body.appendChild(button);
+
+  body.appendChild(el('div', { class: 'mini-title', text: 'Aggiunta rapida da roster e archivio' }));
+  const quickSearch = el('input', { class: 'input', type: 'search', placeholder: 'Cerca PG, PNG o mostro…', 'aria-label': 'Cerca nell’archivio e nel roster' });
+  const quickList = el('div', { style: 'margin-top:8px' });
+  body.append(quickSearch, quickList);
+
+  const sources = () => [
+    ...api.state.roster.pcs.map((x) => ({ ...x, kind: 'pc' })),
+    ...api.state.roster.allies.map((x) => ({ ...x, kind: 'ally' })),
+    ...api.state.roster.archive
+  ];
+  function drawQuickList() {
+    const query = fold(quickSearch.value);
+    const matches = sources().filter((item) => !query || fold(item.name).includes(query));
+    quickList.innerHTML = '';
+    if (!matches.length) {
+      quickList.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: query ? 'Nessun elemento trovato.' : 'Roster e archivio sono vuoti.' }));
+      return;
+    }
+    for (const item of matches) {
+      const button = el('button', { class: 'list-linkitem quick-add-item', style: 'width:100%;text-align:left', type: 'button' }, [
+        el('span', { class: 'grow', text: item.name }),
+        el('span', { class: 'badge', text: KIND_LABELS[item.kind] || 'Mostro' }),
+        el('span', { class: 'chip on', text: 'Iniziativa' })
+      ]);
+      button.addEventListener('click', () => {
+        addToEncounter(api, cloneCombatant(item));
+        api.toast(`${item.name} aggiunto all’iniziativa`);
+        api.refresh('initiative');
+      });
+      quickList.appendChild(button);
+    }
   }
+  quickSearch.addEventListener('input', drawQuickList);
+  drawQuickList();
   api.openDrawer('Aggiungi combattente', body);
 }
 
 function openRoster(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Salva qui i PG e i PNG ricorrenti. I dati restano disponibili tra un incontro e l’altro.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'PG e PNG ricorrenti restano disponibili tra gli incontri. L’archivio conserva schede riutilizzabili di mostri e PNG con statistiche e magie.' }));
+
   const addRosterForm = (kind, title, collection) => {
     const section = el('section', {});
     section.appendChild(el('div', { class: 'mini-title', text: title }));
     const form = el('form', { class: 'row' });
     const input = el('input', { class: 'input grow', required: '', placeholder: kind === 'pc' ? 'Nome del PG' : 'Nome del PNG' });
-    const button = el('button', { class: 'btn primary', type: 'submit', html: ICON.plus });
+    const button = el('button', { class: 'btn primary', type: 'submit', title: `Aggiungi ${title}`, html: ICON.plus });
     form.append(input, button);
     form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -397,11 +420,39 @@ function openRoster(api) {
     section.appendChild(form);
     return section;
   };
+
   const pcs = addRosterForm('pc', 'PG', api.state.roster.pcs);
   const allies = addRosterForm('ally', 'PNG ricorrenti', api.state.roster.allies);
   body.append(pcs, allies);
+
   const lists = el('div', {});
   body.appendChild(lists);
+
+  const archiveTitle = el('div', { class: 'section-title', text: 'Archivio mostri / PNG' });
+  const archiveHint = el('p', { class: 'muted', style: 'font-size:13px', text: 'Salva schede complete e richiamale nell’iniziativa come copie indipendenti.' });
+  const archiveForm = el('form', { class: 'row wrap' });
+  const archiveName = el('input', { class: 'input grow', required: '', placeholder: 'Nome scheda (es. Goblin)' });
+  const archiveKind = el('select', { class: 'input archive-kind', style: 'max-width:130px' }, [
+    el('option', { value: 'monster', text: 'Mostro' }),
+    el('option', { value: 'ally', text: 'PNG' })
+  ]);
+  const archiveAdd = el('button', { class: 'btn primary', type: 'submit', html: ICON.plus + '<span>Salva</span>' });
+  archiveForm.append(archiveName, archiveKind, archiveAdd);
+  const archiveSearch = el('input', { class: 'input', type: 'search', style: 'margin-top:8px', placeholder: 'Cerca nell’archivio…', 'aria-label': 'Cerca archivio mostri e PNG' });
+  const archiveList = el('div', { style: 'margin-top:8px' });
+  body.append(archiveTitle, archiveHint, archiveForm, archiveSearch, archiveList);
+
+  archiveForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = archiveName.value.trim();
+    if (!name) return;
+    api.state.roster.archive.push(makeCombatant(name, archiveKind.value));
+    api.save();
+    archiveName.value = '';
+    drawArchiveList();
+    api.toast(`${name} salvato nell’archivio`);
+  });
+  archiveSearch.addEventListener('input', drawArchiveList);
 
   function redrawRoster() {
     lists.innerHTML = '';
@@ -414,14 +465,15 @@ function openRoster(api) {
     for (const item of collection) {
       const row = el('div', { class: 'list-linkitem' });
       row.append(el('span', { class: 'grow', text: item.name }));
-      const add = el('button', { class: 'chip on', text: 'Iniziativa' });
+      const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
       add.addEventListener('click', () => {
         addToEncounter(api, cloneCombatant({ ...item, kind }));
-        api.closeDrawer();
+        api.toast(`${item.name} aggiunto all’iniziativa`);
         api.refresh('initiative');
       });
-      const remove = el('button', { class: 'dot-btn', title: 'Rimuovi dal roster', html: ICON.trash });
+      const remove = el('button', { class: 'dot-btn', type: 'button', title: 'Rimuovi dal roster', html: ICON.trash });
       remove.addEventListener('click', () => {
+        if (!confirm(`Rimuovere "${item.name}" dal roster? La scheda verrà eliminata dal roster, ma non dai combattimenti già creati.`)) return;
         const index = collection.indexOf(item);
         if (index >= 0) collection.splice(index, 1);
         api.save();
@@ -431,22 +483,111 @@ function openRoster(api) {
       lists.appendChild(row);
     }
   }
+  function drawArchiveList() {
+    const query = fold(archiveSearch.value);
+    const matches = api.state.roster.archive.filter((item) => !query || fold(item.name).includes(query));
+    archiveList.innerHTML = '';
+    if (!matches.length) {
+      archiveList.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: query ? 'Nessun elemento trovato.' : 'Archivio vuoto.' }));
+      return;
+    }
+    for (const item of matches) {
+      const row = el('div', { class: 'list-linkitem archive-item' });
+      const info = el('div', { class: 'grow' }, [
+        el('div', { style: 'font-weight:600', text: item.name }),
+        el('div', { class: 'muted', style: 'font-size:11px', text: archiveSummary(item) })
+      ]);
+      const edit = el('button', { class: 'chip', type: 'button', text: 'Modifica' });
+      edit.addEventListener('click', () => openArchiveDrawer(item, api));
+      const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
+      add.addEventListener('click', () => {
+        addToEncounter(api, cloneCombatant(item));
+        api.toast(`${item.name} aggiunto all’iniziativa`);
+        api.refresh('initiative');
+      });
+      const remove = el('button', { class: 'dot-btn', type: 'button', title: 'Rimuovi dall’archivio', html: ICON.trash });
+      remove.addEventListener('click', () => {
+        if (!confirm(`Rimuovere "${item.name}" dall’archivio?`)) return;
+        const index = api.state.roster.archive.indexOf(item);
+        if (index >= 0) api.state.roster.archive.splice(index, 1);
+        api.save();
+        drawArchiveList();
+      });
+      row.append(info, edit, add, remove);
+      archiveList.appendChild(row);
+    }
+  }
   redrawRoster();
-  api.openDrawer('Roster', body);
+  drawArchiveList();
+  api.openDrawer('Roster e archivio', body);
+}
+
+function openArchiveDrawer(entry, api) {
+  const body = el('div', {});
+  const saveArchive = () => api.save();
+  body.appendChild(el('div', { class: 'field' }, [
+    el('label', { text: 'Nome scheda' }),
+    inputField(entry.name, 'text', (value) => { entry.name = value; saveArchive(); })
+  ]));
+
+  const kind = el('select', { class: 'input' }, [
+    el('option', { value: 'monster', text: 'Mostro' }),
+    el('option', { value: 'ally', text: 'PNG' })
+  ]);
+  kind.value = entry.kind === 'ally' ? 'ally' : 'monster';
+  kind.addEventListener('change', () => { entry.kind = kind.value; saveArchive(); });
+  body.appendChild(el('div', { class: 'field' }, [el('label', { text: 'Tipo' }), kind]));
+
+  const stats = el('div', { class: 'stat-grid' });
+  stats.append(
+    statField('CA', entry.ac, (v) => { entry.ac = v; saveArchive(); }),
+    statField('PF attuali', entry.hpCurrent, (v) => { entry.hpCurrent = v; saveArchive(); }),
+    statField('PF massimi', entry.hpMax, (v) => { entry.hpMax = v; saveArchive(); })
+  );
+  body.appendChild(stats);
+  body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
+    el('label', { text: 'Tiri salvezza' }),
+    inputField(entry.save, 'text', (value) => { entry.save = value; saveArchive(); }, 'es. For +5, Des +2')
+  ]));
+  body.appendChild(el('div', { class: 'field' }, [
+    el('label', { text: 'Note / attacchi / capacità' }),
+    textareaField(entry.notes, (value) => { entry.notes = value; saveArchive(); }, 'es. Multiattacco, morso +5, danni 1d6+3')
+  ]));
+  if (api.state.spells.length) body.appendChild(spellSection(entry, api));
+
+  const remove = el('button', { class: 'btn danger block', style: 'margin-top:20px', html: ICON.trash + '<span>Rimuovi dall’archivio</span>' });
+  remove.addEventListener('click', () => {
+    if (!confirm(`Rimuovere "${entry.name}" dall’archivio?`)) return;
+    const index = api.state.roster.archive.indexOf(entry);
+    if (index >= 0) api.state.roster.archive.splice(index, 1);
+    api.save();
+    api.closeDrawer();
+    api.refresh('initiative');
+  });
+  body.appendChild(remove);
+  api.openDrawer(`Archivio: ${entry.name}`, body);
+}
+
+function archiveSummary(item) {
+  const stats = [];
+  if (item.ac !== '' && item.ac != null) stats.push(`CA ${item.ac}`);
+  if (item.hpMax !== '' && item.hpMax != null) stats.push(`PF ${item.hpMax}`);
+  if (item.knownSpells?.length) stats.push(`${item.knownSpells.length} magie`);
+  return `${KIND_LABELS[item.kind] || 'Mostro'}${stats.length ? ` · ${stats.join(' · ')}` : ''}`;
 }
 
 // ---------- Data helpers ----------
 function makeCombatant(name, kind = 'monster') {
   return {
     id: uid(), name, kind,
-    initiative: null, ac: '', hpCurrent: '', hpMax: '', save: '', dead: false,
+    initiative: null, ac: '', hpCurrent: '', hpMax: '', save: '', notes: '', dead: false,
     conditions: [], conditionNames: {}, affectedSpells: [], knownSpells: []
   };
 }
 
 function cloneCombatant(source) {
   const copy = makeCombatant(source.name, source.kind);
-  for (const key of ['ac', 'hpCurrent', 'hpMax', 'save']) copy[key] = source[key] ?? '';
+  for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes']) copy[key] = source[key] ?? '';
   copy.conditions = [...(source.conditions || [])];
   copy.conditionNames = { ...(source.conditionNames || {}) };
   copy.affectedSpells = (source.affectedSpells || []).map((x) => ({ ...x }));
@@ -461,7 +602,7 @@ function addToEncounter(api, combatant) {
 }
 
 function hydrateSnapshots(state) {
-  const combatants = [...state.encounter.combatants, ...state.roster.pcs, ...state.roster.allies];
+  const combatants = [...state.encounter.combatants, ...state.roster.pcs, ...state.roster.allies, ...state.roster.archive];
   for (const c of combatants) {
     for (const conditionId of c.conditions) {
       const condition = state.conditions.find((item) => item.id === conditionId);
@@ -481,11 +622,12 @@ function normalizeState(state) {
   if (!state.encounter || typeof state.encounter !== 'object') state.encounter = { round: 1, activeId: null, combatants: [] };
   if (!Array.isArray(state.encounter.combatants)) state.encounter.combatants = [];
   if (!state.encounter.round) state.encounter.round = 1;
-  if (!state.roster || typeof state.roster !== 'object') state.roster = { pcs: [], allies: [] };
+  if (!state.roster || typeof state.roster !== 'object') state.roster = { pcs: [], allies: [], archive: [] };
   if (!Array.isArray(state.roster.pcs)) state.roster.pcs = [];
   if (!Array.isArray(state.roster.allies)) state.roster.allies = [];
+  if (!Array.isArray(state.roster.archive)) state.roster.archive = [];
   for (const c of state.encounter.combatants) normalizeCombatant(c);
-  for (const c of [...state.roster.pcs, ...state.roster.allies]) normalizeCombatant(c);
+  for (const c of [...state.roster.pcs, ...state.roster.allies, ...state.roster.archive]) normalizeCombatant(c);
 }
 
 function normalizeCombatant(c) {
@@ -498,6 +640,7 @@ function normalizeCombatant(c) {
   c.affectedSpells = normalizeSpellLinks(c.affectedSpells);
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
   if (c.initiative === undefined) c.initiative = null;
+  if (c.notes === undefined) c.notes = '';
   if (c.dead === undefined) c.dead = false;
 }
 
@@ -536,6 +679,13 @@ function inputField(value, type, onChange, placeholder = '') {
   const input = el('input', { class: 'input', type, value: value ?? '', placeholder });
   input.addEventListener('input', () => onChange(input.value));
   return input;
+}
+
+function textareaField(value, onChange, placeholder = '') {
+  const textarea = el('textarea', { class: 'input', rows: '5', placeholder });
+  textarea.value = value ?? '';
+  textarea.addEventListener('input', () => onChange(textarea.value));
+  return textarea;
 }
 
 function statField(label, value, onChange) {

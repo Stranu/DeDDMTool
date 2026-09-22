@@ -33,8 +33,9 @@ Il parser gestisce campi tra virgolette, virgole e descrizioni su più righe. I 
 ## Funzioni principali
 
 - Roster separato per PG e PNG ricorrenti.
+- Archivio persistente di mostri e PNG con ricerca, CA, PF, TS, note, magie conosciute e aggiunta rapida all’iniziativa come copia indipendente.
 - Iniziativa con aggiunta manuale di mostri/PNG/PG, ordinamento automatico e avanzamento del turno.
-- Dettagli combattente: CA, PF attuali/massimi e tiri salvezza/note.
+- Dettagli combattente: CA, PF attuali/massimi, tiri salvezza e note su attacchi/capacità.
 - Condizioni associate a ogni combattente.
 - Magie conosciute/lanciabili con stato **Lanciata** e magie collegate come effetti attivi sul bersaglio.
 - Ricerca magie per nome italiano/inglese o testo, con filtri combinabili per livello, classe e scuola.

@@ -12,7 +12,7 @@ import { renderSettings } from './views/settings.js';
 // conditions/spells: dataset importati (in memoria, fonte = IndexedDB).
 export const state = {
   encounter: { round: 1, activeId: null, combatants: [] },
-  roster: { pcs: [], allies: [] }, // allies = PNG ricorrenti
+  roster: { pcs: [], allies: [], archive: [] }, // archive = mostri/PNG riutilizzabili
   conditions: [],
   spells: [],
   hasConditions: false,
