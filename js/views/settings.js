@@ -32,7 +32,7 @@ export function renderSettings(root, api) {
 
   // ---- Roster PG / PNG ricorrenti ----
   root.appendChild(el('div', { class: 'section-title', text: 'Roster' }));
-  root.appendChild(el('p', { class: 'muted', text: 'I personaggi giocanti e i PNG ricorrenti si gestiscono dal pulsante "Roster"; le schede Mostri/PNG hanno una sezione dedicata.' }));
+  root.appendChild(el('p', { class: 'muted', text: 'I personaggi giocanti e gli alleati ricorrenti si gestiscono dal pulsante "PG/Alleati"; le schede Mostri/PNG hanno una sezione dedicata.' }));
 
   // ---- Info ----
   root.appendChild(el('hr', { class: 'sep' }));

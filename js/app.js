@@ -9,7 +9,7 @@ import { renderMonsters } from './views/monsters.js';
 
 // ---------------- Stato condiviso ----------------
 // encounter: stato del gestore iniziativa (persistito su ogni evento).
-// roster:    PG e PNG ricorrenti (persistiti).
+// roster:    PG e alleati ricorrenti (persistiti).
 // conditions/spells: dataset importati (in memoria, fonte = IndexedDB).
 export const state = {
   encounter: { round: 1, activeId: null, combatants: [] },

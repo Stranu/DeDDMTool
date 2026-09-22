@@ -4,18 +4,19 @@
 import { el, ICON, uid, fold } from '../util.js';
 import { spellDetails } from './spells.js';
 
-const KIND_LABELS = { pc: 'PG', ally: 'PNG', monster: 'Mostro' };
+const KIND_LABELS = { pc: 'PG', ally: 'Alleato', monster: 'Mostro/PNG' };
 
 export function renderInitiative(root, api) {
   const { state } = api;
   normalizeState(state);
+  linkSharedRosterEntities(state);
   hydrateSnapshots(state);
   root.innerHTML = '';
 
   const toolbar = el('div', { class: 'init-toolbar' });
   const nextBtn = el('button', { class: 'btn primary grow', title: 'Prossimo turno', html: ICON.play + '<span>Prossimo turno</span>' });
-  const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi combattente', html: ICON.plus + '<span>Aggiungi</span>' });
-  const rosterBtn = el('button', { class: 'btn ghost', title: 'Gestisci roster', html: '<span>Roster</span>' });
+  const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi Mostri/PNG temporaneo o da archivio', html: '<span>+ Mostri</span>' });
+  const rosterBtn = el('button', { class: 'btn ghost', title: 'Gestisci PG e alleati ricorrenti', html: '<span>PG/Alleati</span>' });
   const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera iniziativa', html: ICON.reset + '<span>Reset</span>' });
   toolbar.append(nextBtn, addBtn, rosterBtn, resetBtn);
   root.appendChild(toolbar);
@@ -123,7 +124,7 @@ export function renderInitiative(root, api) {
     return el('div', { class: 'empty' }, [
       el('div', { html: ICON.play }),
       el('div', { text: 'Nessun combattente nell’iniziativa.' }),
-      el('div', { class: 'muted', text: 'Usa il pulsante Aggiungi in alto per inserire PG, PNG o mostri.' })
+      el('div', { class: 'muted', text: 'Usa + Mostri per inserire una scheda Mostri/PNG o PG/Alleati per i ricorrenti.' })
     ]);
   }
 
@@ -152,10 +153,15 @@ export function renderInitiative(root, api) {
 }
 
 // ---------- Drawer combattente ----------
-function openCombatantDrawer(c, api) {
+function openCombatantDrawer(c, api, options = {}) {
   const { state } = api;
   const body = el('div', {});
-  const saveAndRefresh = () => { api.save(); api.refresh('initiative'); };
+  const saveAndRefresh = () => {
+    if (options.shared) syncRosterMemberToEncounter(c, api);
+    else syncEncounterToRoster(c, api);
+    api.save();
+    api.refresh('initiative');
+  };
 
   body.appendChild(el('div', { class: 'field' }, [
     el('label', { text: 'Nome' }),
@@ -174,14 +180,29 @@ function openCombatantDrawer(c, api) {
     textareaField(c.notes, (value) => { c.notes = value; saveAndRefresh(); }, 'es. Multiattacco, morso +5, danni 1d6+3')
   ]));
 
-  if (state.conditions.length) body.appendChild(conditionSection(c, api));
-  if (state.spells.length) body.appendChild(spellSection(c, api));
+  if (state.conditions.length) body.appendChild(conditionSection(c, api, saveAndRefresh));
+  if (state.spells.length) body.appendChild(spellSection(c, api, saveAndRefresh));
 
-  const remove = el('button', { class: 'btn danger block', style: 'margin-top:20px', html: ICON.trash + '<span>Rimuovi dall’iniziativa</span>' });
+  const remove = el('button', {
+    class: 'btn danger block', style: 'margin-top:20px',
+    html: options.shared
+      ? ICON.trash + '<span>Rimuovi da PG/Alleati</span>'
+      : ICON.trash + '<span>Rimuovi dall’iniziativa</span>'
+  });
   remove.addEventListener('click', () => {
-    if (!confirm(`Rimuovere "${c.name}" dall’iniziativa? I dati della scheda archivio/roster non verranno modificati.`)) return;
-    state.encounter.combatants = state.encounter.combatants.filter((item) => item.id !== c.id);
-    if (state.encounter.activeId === c.id) state.encounter.activeId = null;
+    if (options.shared) {
+      if (!confirm(`Rimuovere "${c.name}" da PG/Alleati? Le copie già presenti nei combattimenti resteranno utilizzabili.`)) return;
+      const collection = state.roster.pcs.includes(c) ? state.roster.pcs : state.roster.allies;
+      const index = collection.indexOf(c);
+      if (index >= 0) collection.splice(index, 1);
+      for (const combatant of state.encounter.combatants) {
+        if (combatant.rosterId === c.id) delete combatant.rosterId;
+      }
+    } else {
+      if (!confirm(`Rimuovere "${c.name}" dall’iniziativa? I dati della scheda archivio/roster non verranno modificati.`)) return;
+      state.encounter.combatants = state.encounter.combatants.filter((item) => item.id !== c.id);
+      if (state.encounter.activeId === c.id) state.encounter.activeId = null;
+    }
     api.save();
     api.closeDrawer();
     api.refresh('initiative');
@@ -191,7 +212,7 @@ function openCombatantDrawer(c, api) {
   api.openDrawer(c.name || 'Dettagli combattente', body);
 }
 
-function conditionSection(c, api) {
+function conditionSection(c, api, onChange = () => api.save()) {
   const section = el('section', {});
   section.appendChild(el('div', { class: 'mini-title', text: 'Condizioni' }));
   const chips = el('div', { class: 'row wrap' });
@@ -206,7 +227,7 @@ function conditionSection(c, api) {
         c.conditionNames[condition.id] = condition.name;
       }
       chip.classList.toggle('on', c.conditions.includes(condition.id));
-      api.save();
+      onChange();
       api.refresh('initiative');
     });
     chips.appendChild(chip);
@@ -215,7 +236,7 @@ function conditionSection(c, api) {
   return section;
 }
 
-function spellSection(c, api) {
+function spellSection(c, api, onChange = () => api.save()) {
   const section = el('section', {});
   section.appendChild(el('div', { class: 'mini-title', text: 'Magie associate' }));
   section.appendChild(el('p', { class: 'muted', style: 'font-size:12px;margin-top:0', text: 'Aggiungi magie che il combattente conosce/lancia oppure effetti attivi su di lui.' }));
@@ -274,7 +295,7 @@ function spellSection(c, api) {
     if (!target.some((link) => link.spellId === spell.id)) {
       target.push({ spellId: spell.id, name: spell.name, original: spell.original || '', cast: false });
     }
-    api.save();
+    onChange();
     search.value = '';
     results.innerHTML = '';
     redrawLists();
@@ -318,14 +339,14 @@ function spellSection(c, api) {
       row.classList.toggle('cast', link.cast);
       cast.classList.toggle('on', link.cast);
       cast.textContent = link.cast ? 'Lanciata' : 'Da lanciare';
-      api.save();
+      onChange();
     });
     const remove = el('button', { class: 'dot-btn', title: 'Scollega magia', html: ICON.x });
     remove.addEventListener('click', () => {
       const target = type === 'known' ? c.knownSpells : c.affectedSpells;
       const index = target.indexOf(link);
       if (index >= 0) target.splice(index, 1);
-      api.save();
+      onChange();
       redrawLists();
       api.refresh('initiative');
     });
@@ -342,35 +363,27 @@ function spellSection(c, api) {
 // ---------- Add / roster drawer ----------
 function openAddMenu(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi un combattente temporaneo all’iniziativa oppure cerca una scheda esistente di PG, PNG ricorrenti o Mostri/PNG.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi un Mostro/PNG temporaneo all’iniziativa oppure cerca una scheda Mostri/PNG esistente.' }));
   const form = el('form', {});
-  const name = el('input', { class: 'input', required: '', placeholder: 'Nome (es. Goblin 1)' });
-  const kind = el('select', { class: 'input', style: 'margin-top:8px' }, [
-    el('option', { value: 'monster', text: 'Mostro/PNG' }),
-    el('option', { value: 'pc', text: 'PG' })
-  ]);
+  const name = el('input', { class: 'input', required: '', placeholder: 'Nome Mostri/PNG (es. Goblin 1)' });
   const submit = el('button', { class: 'btn primary block', style: 'margin-top:10px', type: 'submit', html: ICON.plus + '<span>Aggiungi all’iniziativa</span>' });
-  form.append(name, kind, submit);
+  form.append(name, submit);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const value = name.value.trim();
     if (!value) return;
-    addToEncounter(api, makeCombatant(value, kind.value));
+    addToEncounter(api, makeCombatant(value, 'monster'));
     api.closeDrawer();
     api.refresh('initiative');
   });
   body.appendChild(form);
 
   body.appendChild(el('div', { class: 'mini-title', text: 'Aggiunta rapida da roster e archivio' }));
-  const quickSearch = el('input', { class: 'input', type: 'search', placeholder: 'Cerca PG, PNG o mostro…', 'aria-label': 'Cerca nell’archivio e nel roster' });
+  const quickSearch = el('input', { class: 'input', type: 'search', placeholder: 'Cerca Mostri/PNG…', 'aria-label': 'Cerca nelle schede Mostri e PNG' });
   const quickList = el('div', { style: 'margin-top:8px' });
   body.append(quickSearch, quickList);
 
-  const sources = () => [
-    ...api.state.roster.pcs.map((x) => ({ ...x, kind: 'pc' })),
-    ...api.state.roster.allies.map((x) => ({ ...x, kind: 'ally' })),
-    ...api.state.roster.archive.map((x) => ({ ...x, source: 'archive' }))
-  ];
+  const sources = () => api.state.roster.archive;
   function drawQuickList() {
     const query = fold(quickSearch.value);
     const matches = sources().filter((item) => !query || fold(item.name).includes(query));
@@ -382,7 +395,7 @@ function openAddMenu(api) {
     for (const item of matches) {
       const button = el('button', { class: 'list-linkitem quick-add-item', style: 'width:100%;text-align:left', type: 'button' }, [
         el('span', { class: 'grow', text: item.name }),
-        el('span', { class: 'badge', text: item.source === 'archive' ? 'Mostri/PNG' : (KIND_LABELS[item.kind] || 'Mostri/PNG') }),
+        el('span', { class: 'badge', text: 'Mostri/PNG' }),
         el('span', { class: 'chip on', text: 'Iniziativa' })
       ]);
       button.addEventListener('click', () => {
@@ -395,12 +408,12 @@ function openAddMenu(api) {
   }
   quickSearch.addEventListener('input', drawQuickList);
   drawQuickList();
-  api.openDrawer('Aggiungi combattente', body);
+  api.openDrawer('+ Mostri', body);
 }
 
 function openRoster(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'PG e PNG ricorrenti restano disponibili tra gli incontri. Per le schede di mostri e PNG usa la sezione Mostri.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'PG e alleati ricorrenti restano disponibili tra gli incontri. Le loro statistiche sono condivise con le copie presenti nell’iniziativa.' }));
 
   const addRosterForm = (kind, title, collection) => {
     const section = el('section', {});
@@ -423,7 +436,7 @@ function openRoster(api) {
   };
 
   const pcs = addRosterForm('pc', 'PG', api.state.roster.pcs);
-  const allies = addRosterForm('ally', 'PNG ricorrenti', api.state.roster.allies);
+  const allies = addRosterForm('ally', 'Alleati ricorrenti', api.state.roster.allies);
   body.append(pcs, allies);
 
   const lists = el('div', {});
@@ -432,17 +445,19 @@ function openRoster(api) {
   function redrawRoster() {
     lists.innerHTML = '';
     drawRosterList('PG', api.state.roster.pcs, 'pc');
-    drawRosterList('PNG ricorrenti', api.state.roster.allies, 'ally');
+    drawRosterList('Alleati ricorrenti', api.state.roster.allies, 'ally');
   }
   function drawRosterList(title, collection, kind) {
     if (!collection.length) return;
     lists.appendChild(el('div', { class: 'mini-title', text: title }));
     for (const item of collection) {
       const row = el('div', { class: 'list-linkitem' });
-      row.append(el('span', { class: 'grow', text: item.name }));
+      const name = el('span', { class: 'grow', text: item.name, title: 'Apri e modifica scheda' });
+      name.addEventListener('click', () => openCombatantDrawer(item, api, { shared: true }));
+      row.append(name);
       const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
       add.addEventListener('click', () => {
-        addToEncounter(api, cloneCombatant({ ...item, kind }));
+        addRosterMemberToEncounter(api, item);
         api.toast(`${item.name} aggiunto all’iniziativa`);
         api.refresh('initiative');
       });
@@ -451,6 +466,9 @@ function openRoster(api) {
         if (!confirm(`Rimuovere "${item.name}" dal roster? La scheda verrà eliminata dal roster, ma non dai combattimenti già creati.`)) return;
         const index = collection.indexOf(item);
         if (index >= 0) collection.splice(index, 1);
+        for (const combatant of api.state.encounter.combatants) {
+          if (combatant.rosterId === item.id) delete combatant.rosterId;
+        }
         api.save();
         redrawRoster();
       });
@@ -459,7 +477,7 @@ function openRoster(api) {
     }
   }
   redrawRoster();
-  api.openDrawer('Roster PG e PNG', body);
+  api.openDrawer('PG/Alleati', body);
 }
 
 export function openArchiveDrawer(entry, api, returnView = 'initiative') {
@@ -533,6 +551,58 @@ export function cloneCombatant(source) {
   copy.affectedSpells = (source.affectedSpells || []).map((x) => ({ ...x }));
   copy.knownSpells = (source.knownSpells || []).map((x) => ({ ...x }));
   return copy;
+}
+
+const SHARED_FIELDS = [
+  'name', 'kind', 'ac', 'hpCurrent', 'hpMax', 'save', 'notes',
+  'creatureType', 'cr', 'conditions', 'conditionNames', 'affectedSpells', 'knownSpells'
+];
+
+function copySharedFields(source, target) {
+  for (const key of SHARED_FIELDS) {
+    if (Array.isArray(source[key])) target[key] = source[key].map((item) => (typeof item === 'object' && item !== null ? { ...item } : item));
+    else if (source[key] && typeof source[key] === 'object') target[key] = { ...source[key] };
+    else target[key] = source[key] ?? '';
+  }
+}
+
+function rosterMembers(api) {
+  return [...api.state.roster.pcs, ...api.state.roster.allies];
+}
+
+function findRosterMember(api, id) {
+  return rosterMembers(api).find((member) => member.id === id);
+}
+
+function syncEncounterToRoster(combatant, api) {
+  if (!combatant.rosterId) return;
+  const member = findRosterMember(api, combatant.rosterId);
+  if (!member) return;
+  copySharedFields(combatant, member);
+  for (const other of api.state.encounter.combatants) {
+    if (other !== combatant && other.rosterId === member.id) copySharedFields(member, other);
+  }
+}
+
+function syncRosterMemberToEncounter(member, api) {
+  for (const combatant of api.state.encounter.combatants) {
+    if (combatant.rosterId === member.id) copySharedFields(member, combatant);
+  }
+}
+
+function linkSharedRosterEntities(state) {
+  const members = [...state.roster.pcs, ...state.roster.allies];
+  for (const combatant of state.encounter.combatants) {
+    if (!combatant.rosterId) continue;
+    const member = members.find((item) => item.id === combatant.rosterId);
+    if (member) copySharedFields(member, combatant);
+  }
+}
+
+function addRosterMemberToEncounter(api, member) {
+  const combatant = cloneCombatant(member);
+  combatant.rosterId = member.id;
+  addToEncounter(api, combatant);
 }
 
 export function addToEncounter(api, combatant) {

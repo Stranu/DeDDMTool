@@ -40,7 +40,7 @@ Il parser gestisce campi tra virgolette, virgole e descrizioni su più righe. I 
 
 ## Funzioni principali
 
-- Roster separato per PG e PNG ricorrenti.
+- Sezione **PG/Alleati** per personaggi giocanti e alleati ricorrenti.
 - Archivio persistente nella sezione **Mostri/PNG** per le schede riutilizzabili, con ricerca per nome, tipo creatura e GS, CA, PF, TS, note, magie conosciute e aggiunta rapida all’iniziativa come copia indipendente.
 - Iniziativa con aggiunta manuale di mostri/PNG/PG, ordinamento automatico e avanzamento del turno.
 - Dettagli combattente: CA, PF attuali/massimi, tiri salvezza e note su attacchi/capacità.
