@@ -16,7 +16,7 @@ export function renderInitiative(root, api) {
   const toolbar = el('div', { class: 'init-toolbar' });
   const nextBtn = el('button', { class: 'btn primary grow', title: 'Prossimo turno', html: ICON.play + '<span>Prossimo turno</span>' });
   const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi Mostri/PNG temporaneo o da archivio', html: '<span>+ Mostri</span>' });
-  const rosterBtn = el('button', { class: 'btn ghost', title: 'Gestisci PG e alleati ricorrenti', html: '<span>PG/Alleati</span>' });
+  const rosterBtn = el('button', { class: 'btn accent', title: 'Gestisci PG e alleati ricorrenti', html: '<span>+ PG/Alleati</span>' });
   const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera iniziativa', html: ICON.reset + '<span>Reset</span>' });
   toolbar.append(nextBtn, addBtn, rosterBtn, resetBtn);
   root.appendChild(toolbar);
@@ -93,7 +93,7 @@ export function renderInitiative(root, api) {
     }
     const knownCount = (c.knownSpells || []).length;
     const affectedCount = (c.affectedSpells || []).length;
-    if (knownCount) sub.appendChild(el('span', { text: `✦ ${knownCount} magie${knownCount === 1 ? '' : 'he'}` }));
+    if (knownCount) sub.appendChild(el('span', { class: 'magic-prepared-marker', title: `Magie preparate: ${knownCount}`, 'aria-label': `Magie preparate: ${knownCount}`, text: `✦ ${knownCount}` }));
     if (affectedCount) {
       sub.appendChild(el('span', {
         class: 'active-spells-marker',
@@ -402,7 +402,9 @@ function openAddMenu(api) {
     event.preventDefault();
     const value = name.value.trim();
     if (!value) return;
-    addToEncounter(api, makeCombatant(value, 'monster'));
+    const combatant = makeCombatant(value, 'monster');
+    combatant.name = uniqueEncounterName(api.state.encounter.combatants, combatant.name);
+    addToEncounter(api, combatant);
     api.closeDrawer();
     api.refresh('initiative');
   });
@@ -423,22 +425,68 @@ function openAddMenu(api) {
       return;
     }
     for (const item of matches) {
-      const button = el('button', { class: 'list-linkitem quick-add-item', style: 'width:100%;text-align:left', type: 'button' }, [
-        el('span', { class: 'grow', text: item.name }),
-        el('span', { class: 'badge', text: 'Mostri/PNG' }),
-        el('span', { class: 'chip on', text: 'Iniziativa' })
-      ]);
-      button.addEventListener('click', () => {
-        addToEncounter(api, cloneCombatant(item));
-        api.toast(`${item.name} aggiunto all’iniziativa`);
+      const row = el('div', { class: 'list-linkitem quick-add-item' });
+      const nameButton = el('button', { class: 'grow quick-sheet-name', type: 'button', title: 'Visualizza scheda', text: item.name });
+      nameButton.addEventListener('click', () => openArchiveReadOnly(item, api));
+      const addButton = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
+      addButton.addEventListener('click', () => {
+        const added = addMonsterToEncounter(api, item);
+        api.toast(`${added.name} aggiunto all’iniziativa`);
         api.refresh('initiative');
       });
-      quickList.appendChild(button);
+      row.append(nameButton, el('span', { class: 'badge', text: 'Mostri/PNG' }), addButton);
+      quickList.appendChild(row);
     }
   }
   quickSearch.addEventListener('input', drawQuickList);
   drawQuickList();
   api.openDrawer('+ Mostri', body);
+}
+
+function openArchiveReadOnly(entry, api) {
+  const body = el('div', {});
+  body.appendChild(readOnlyField('Tipo creatura', entry.creatureType || '—'));
+  body.appendChild(readOnlyField('GS', entry.cr === '' || entry.cr == null ? '—' : String(entry.cr)));
+  const stats = el('div', { class: 'stat-grid' }, [
+    readOnlyField('CA', entry.ac === '' || entry.ac == null ? '—' : String(entry.ac)),
+    readOnlyField('PF', `${entry.hpCurrent || '—'} / ${entry.hpMax || '—'}`),
+    readOnlyField('TS', entry.save || '—')
+  ]);
+  body.appendChild(stats);
+  body.appendChild(readOnlyField('Note / attacchi / capacità', entry.notes || '—', true));
+
+  if (entry.conditions?.length) {
+    body.appendChild(el('div', { class: 'mini-title', text: 'Condizioni' }));
+    body.appendChild(el('div', { class: 'row wrap' }, entry.conditions.map((id) => {
+      const condition = api.state.conditions.find((item) => item.id === id);
+      return el('span', { class: 'badge cond', text: condition?.name || entry.conditionNames?.[id] || id });
+    })));
+  }
+  appendReadOnlySpells(body, 'Magie conosciute', entry.knownSpells || [], api);
+  appendReadOnlySpells(body, 'Effetti attivi', entry.affectedSpells || [], api);
+  api.openDrawer(`Mostri/PNG: ${entry.name}`, body);
+}
+
+function readOnlyField(label, value, multiline = false) {
+  return el('div', { class: `field${multiline ? ' readonly-note' : ''}` }, [
+    el('label', { text: label }),
+    el('div', { class: 'readonly-value', text: value })
+  ]);
+}
+
+function appendReadOnlySpells(body, title, links, api) {
+  if (!links.length) return;
+  body.appendChild(el('div', { class: 'mini-title', text: title }));
+  for (const link of links) {
+    const spell = api.state.spells.find((item) => item.id === link.spellId);
+    const row = el('button', { class: 'list-linkitem', type: 'button' }, [
+      el('span', { class: 'grow', text: spell?.name || link.name || link.spellId || 'Magia non disponibile' }),
+      el('span', { class: 'muted', text: link.cast ? 'Lanciata' : '' })
+    ]);
+    if (spell) row.addEventListener('click', () => api.openDrawer(spell.name, spellDetails(spell)));
+    else row.disabled = true;
+    body.appendChild(row);
+  }
 }
 
 function openRoster(api) {
@@ -487,7 +535,7 @@ function openRoster(api) {
       row.append(name);
       const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
       add.addEventListener('click', () => {
-        addRosterMemberToEncounter(api, item);
+        if (!addRosterMemberToEncounter(api, item)) return;
         api.toast(`${item.name} aggiunto all’iniziativa`);
         api.refresh('initiative');
       });
@@ -630,10 +678,31 @@ function linkSharedRosterEntities(state) {
 }
 
 function addRosterMemberToEncounter(api, member) {
+  if (api.state.encounter.combatants.some((combatant) => combatant.rosterId === member.id)) {
+    api.toast(`${member.name} è già presente nell’iniziativa.`);
+    return false;
+  }
   const combatant = cloneCombatant(member);
   combatant.tempHp = member.tempHp ?? 0;
   combatant.rosterId = member.id;
   addToEncounter(api, combatant);
+  return true;
+}
+
+export function addMonsterToEncounter(api, source) {
+  const combatant = cloneCombatant(source);
+  combatant.name = uniqueEncounterName(api.state.encounter.combatants, combatant.name);
+  addToEncounter(api, combatant);
+  return combatant;
+}
+
+function uniqueEncounterName(combatants, originalName) {
+  const base = (originalName || 'Mostri/PNG').trim() || 'Mostri/PNG';
+  const used = new Set(combatants.map((combatant) => fold(combatant.name)));
+  if (!used.has(fold(base))) return base;
+  let sequence = 2;
+  while (used.has(fold(`${base} ${sequence}`))) sequence += 1;
+  return `${base} ${sequence}`;
 }
 
 export function addToEncounter(api, combatant) {

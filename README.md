@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v5` a `dm-toolkit-v6`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v6` a `dm-toolkit-v7`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 

@@ -6,6 +6,7 @@ import {
   makeCombatant,
   cloneCombatant,
   addToEncounter,
+  addMonsterToEncounter,
   openArchiveDrawer
 } from './initiative.js';
 
@@ -133,8 +134,8 @@ export function renderMonsters(root, api) {
     edit.addEventListener('click', () => openArchiveDrawer(entry, api, 'monsters'));
     const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
     add.addEventListener('click', () => {
-      addToEncounter(api, cloneCombatant(entry));
-      api.toast(`${entry.name} aggiunto all’iniziativa`);
+      const added = addMonsterToEncounter(api, entry);
+      api.toast(`${added.name} aggiunto all’iniziativa`);
       api.refresh('monsters');
     });
     const remove = el('button', { class: 'dot-btn', type: 'button', title: 'Rimuovi scheda', html: ICON.trash });
