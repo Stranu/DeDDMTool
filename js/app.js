@@ -6,12 +6,15 @@ import { renderConditions } from './views/conditions.js';
 import { renderSpells } from './views/spells.js';
 import { renderSettings } from './views/settings.js';
 import { renderMonsters } from './views/monsters.js';
+import { renderPlayer, normalizePlayerState } from './views/player.js';
 
 // ---------------- Stato condiviso ----------------
 // encounter: stato del gestore iniziativa (persistito su ogni evento).
 // roster:    PG e alleati ricorrenti (persistiti).
 // conditions/spells: dataset importati (in memoria, fonte = IndexedDB).
 export const state = {
+  mode: 'gm',
+  player: { activeId: null, characters: [] },
   encounter: { round: 1, activeId: null, combatants: [] },
   roster: { pcs: [], allies: [], archive: [] }, // archive = mostri/PNG riutilizzabili
   conditions: [],
@@ -26,6 +29,7 @@ const views = {
   conditions: { el: $('#view-conditions'), render: renderConditions },
   spells: { el: $('#view-spells'), render: renderSpells },
   monsters: { el: $('#view-monsters'), render: renderMonsters },
+  player: { el: $('#view-player'), render: renderPlayer },
   settings: { el: $('#view-settings'), render: renderSettings }
 };
 
@@ -45,7 +49,9 @@ export function save() {
       try {
         await Promise.all([
           db.kvSet('encounter', state.encounter),
-          db.kvSet('roster', state.roster)
+          db.kvSet('roster', state.roster),
+          db.kvSet('player', state.player),
+          db.kvSet('mode', state.mode)
         ]);
       } catch (error) {
         success = false;
@@ -80,15 +86,17 @@ function goTo(view) {
 }
 
 function updateTabs() {
-  $('#tab-conditions').hidden = !state.hasConditions;
-  // Magie resta sempre accessibile anche senza dataset importato, per permettere la creazione manuale.
+  const playerMode = state.mode === 'player';
+  $$('.gm-only').forEach((tab) => { tab.hidden = playerMode; });
+  $$('.player-only').forEach((tab) => { tab.hidden = !playerMode; });
+  $('#tab-conditions').hidden = playerMode || !state.hasConditions;
+  // Magie, Personaggi e Impostazioni sono disponibili anche in modalità Player.
   $('#tab-spells').hidden = false;
-  // Mostri/PNG resta sempre accessibile anche quando l'archivio è vuoto.
-  $('#tab-monsters').hidden = false;
-  // Se ero su una tab ora nascosta, torna all'iniziativa.
-  if (current === 'conditions' && !state.hasConditions) {
-    goTo('initiative');
-  }
+  $('#tab-monsters').hidden = playerMode;
+  // Se la vista corrente non appartiene alla modalità attiva, torna alla vista principale.
+  if (playerMode && ['initiative', 'conditions', 'monsters'].includes(current)) goTo('player');
+  if (!playerMode && current === 'player') goTo('initiative');
+  if (!playerMode && current === 'conditions' && !state.hasConditions) goTo('initiative');
 }
 
 // ---------------- Drawer ----------------
@@ -110,6 +118,41 @@ function closeDrawer() {
   $('#drawer-backdrop').hidden = true;
 }
 
+function setMode(mode) {
+  if (mode !== 'gm' && mode !== 'player') return;
+  state.mode = mode;
+  normalizePlayerState(state);
+  save();
+  updateTabs();
+  closeDrawer();
+  goTo(mode === 'player' ? 'player' : 'initiative');
+}
+
+function openModeMenu() {
+  const body = elModeMenu();
+  openDrawer('Modalità app', body);
+}
+
+function elModeMenu() {
+  const body = document.createElement('div');
+  const intro = document.createElement('p');
+  intro.className = 'muted';
+  intro.textContent = 'Scegli l’area di lavoro. I dati GM e Player restano locali sul dispositivo.';
+  const gm = document.createElement('button');
+  gm.className = `btn block ${state.mode === 'gm' ? 'primary' : 'ghost'}`;
+  gm.type = 'button';
+  gm.textContent = 'GM · Strumenti di gestione';
+  gm.addEventListener('click', () => setMode('gm'));
+  const player = document.createElement('button');
+  player.className = `btn block ${state.mode === 'player' ? 'primary' : 'ghost'}`;
+  player.type = 'button';
+  player.style.marginTop = '10px';
+  player.textContent = 'Player · Schede personaggi';
+  player.addEventListener('click', () => setMode('player'));
+  body.append(intro, gm, player);
+  return body;
+}
+
 // ---------------- Caricamento dataset ----------------
 export async function reloadDatasets() {
   const [conds, spells, cc, sc] = await Promise.all([
@@ -129,23 +172,28 @@ export async function reloadDatasets() {
 // ---------------- Bootstrap ----------------
 async function boot() {
   // Carica stato persistito.
-  const [enc, roster] = await Promise.all([
+  const [enc, roster, player, mode] = await Promise.all([
     db.kvGet('encounter', null),
-    db.kvGet('roster', null)
+    db.kvGet('roster', null),
+    db.kvGet('player', null),
+    db.kvGet('mode', null)
   ]);
   if (enc) state.encounter = enc;
   if (roster) state.roster = roster;
+  if (player) state.player = player;
+  if (mode === 'player' || mode === 'gm') state.mode = mode;
+  normalizePlayerState(state);
   await reloadDatasets();
 
   // Eventi di navigazione.
   $$('.tab').forEach((t) => t.addEventListener('click', () => goTo(t.dataset.view)));
   $('#settings-btn').addEventListener('click', () => goTo('settings'));
-  $('#menu-toggle').addEventListener('click', () => goTo('initiative'));
+  $('#menu-toggle').addEventListener('click', openModeMenu);
   $('#drawer-close').addEventListener('click', closeDrawer);
   $('#drawer-backdrop').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  goTo('initiative');
+  goTo(state.mode === 'player' ? 'player' : 'initiative');
 
   registerServiceWorker();
 }

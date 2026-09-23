@@ -24,11 +24,11 @@
   </header>
 
   <nav class="tabbar" id="tabbar">
-    <button class="tab active" data-view="initiative">
+    <button class="tab gm-only active" data-view="initiative">
       <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       <span>Iniziativa</span>
     </button>
-    <button class="tab" data-view="conditions" id="tab-conditions" hidden>
+    <button class="tab gm-only" data-view="conditions" id="tab-conditions" hidden>
       <svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
       <span>Condizioni</span>
     </button>
@@ -36,9 +36,13 @@
       <svg viewBox="0 0 24 24"><path d="M4 20l7-7M14 6l4 4M9 3l1.5 3L14 7l-3 1.5L9.5 12 8 8.5 4 7l3.5-1.5z"/></svg>
       <span>Magie</span>
     </button>
-    <button class="tab" data-view="monsters" id="tab-monsters">
+    <button class="tab gm-only" data-view="monsters" id="tab-monsters">
       <svg viewBox="0 0 24 24"><path d="M4 13V8l4-4 4 3 4-3 4 4v5l-3 7H7z"/><path d="M8 13h.01M16 13h.01M9 17c2 1 4 1 6 0"/></svg>
       <span>Mostri/PNG</span>
+    </button>
+    <button class="tab player-only" data-view="player" id="tab-player" hidden>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 21a7 7 0 0 1 14 0M3 13h18"/></svg>
+      <span>Personaggi</span>
     </button>
     <button class="tab" data-view="settings">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -52,6 +56,7 @@
     <section class="view" id="view-conditions" hidden></section>
     <section class="view" id="view-spells" hidden></section>
     <section class="view" id="view-monsters" hidden></section>
+    <section class="view" id="view-player" hidden></section>
     <section class="view" id="view-settings" hidden></section>
   </main>
 

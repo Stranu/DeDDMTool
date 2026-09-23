@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v9` a `dm-toolkit-v10`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v11` a `dm-toolkit-v12`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 
@@ -77,3 +77,9 @@ Durante l’importazione CSV, le descrizioni vengono ripulite dai ritorni a capo
 Le magie possono anche essere create o modificate manualmente dalla sezione **Magie**. Le nuove magie sono marcate con un simbolo, filtrabili con **Create a mano** e usano `Manuale base` quando il campo Manuale viene lasciato vuoto. Per una magia manuale sono obbligatori nome, tempo di lancio, almeno una classe, livello e descrizione.
 
 Le magie possono essere contrassegnate come preferite tramite la stellina accanto al nome. Il filtro **Preferite** mostra solo le magie selezionate; lo stato viene salvato in IndexedDB e incluso nei backup JSON.
+
+## Modalità Player
+
+Dal menu in alto a sinistra è possibile passare tra modalità **GM** e **Player**. La modalità Player è locale al dispositivo e permette più schede personaggio con caratteristiche, calcoli derivati, PF, inventario, equipaggiamento, oggetti magici, sintonizzazione massima predefinita a 3 e magie assegnate dalla lista Magie. Non sono presenti account, permessi o sincronizzazione remota.
+
+Le schede Player possono avere un colore identificativo selezionabile; le magie assegnate mostrano un pallino per ogni personaggio assegnatario. Sono disponibili tiri salvezza e abilità calcolati con competenza e doppia competenza, oltre a bonus temporanei globali e bonus ai tiri salvezza forniti dagli oggetti equipaggiati.

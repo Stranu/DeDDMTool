@@ -1,6 +1,7 @@
 // Impostazioni: import CSV e backup JSON locali, senza backend.
 import { el, ICON, escapeHtml } from '../util.js';
 import { parseConditions, parseSpells } from '../csv.js';
+import { normalizePlayerState } from './player.js';
 import {
   BACKUP_CATEGORIES,
   categoryLabel,
@@ -157,6 +158,11 @@ export function renderSettings(root, api) {
     if (categories.includes('monsters')) {
       state.roster.archive = data.monsters;
     }
+    if (categories.includes('player')) {
+      state.mode = data.player.mode === 'player' ? 'player' : 'gm';
+      state.player = { activeId: data.player.activeId || null, characters: data.player.characters };
+      normalizePlayerState(state);
+    }
     if (categories.includes('conditions')) {
       await db.bulkPut('conditions', data.conditions);
     }
@@ -179,6 +185,7 @@ export function renderSettings(root, api) {
       throw new Error('Categoria PG/Alleati non valida.');
     }
     if (categories.includes('monsters') && !validItems(data.monsters)) throw new Error('Categoria Mostri/PNG non valida.');
+    if (categories.includes('player') && (!data.player || !Array.isArray(data.player.characters))) throw new Error('Categoria Player non valida.');
     if (categories.includes('conditions') && !validItems(data.conditions)) throw new Error('Categoria condizioni non valida.');
     if (categories.includes('spells') && !validItems(data.spells)) throw new Error('Categoria magie non valida.');
   }

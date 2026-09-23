@@ -147,7 +147,9 @@ export function renderSpells(root, api) {
       event.stopPropagation();
       toggleFavorite(spell, favorite, api, root);
     });
-    const head = el('div', { class: 'acc-head' }, [title, favorite, el('span', { class: 'badge', text: levelLabel(spell.level) }), el('span', { class: 'caret', html: ICON.caret })]);
+    const assign = api.state.mode === 'player' ? assignSpellButton(spell, api, root) : null;
+    const assignedMarkers = assignedCharacterMarkers(spell, api);
+    const head = el('div', { class: 'acc-head' }, [title, favorite, assignedMarkers, assign, el('span', { class: 'badge', text: levelLabel(spell.level) }), el('span', { class: 'caret', html: ICON.caret })].filter(Boolean));
     const body = el('div', { class: 'acc-body' });
     body.appendChild(spellDetails(spell));
     const edit = el('button', { class: 'btn sm ghost', type: 'button', html: ICON.edit + '<span>Modifica</span>' });
@@ -155,13 +157,64 @@ export function renderSpells(root, api) {
       event.stopPropagation();
       openSpellEditor(spell, api, root);
     });
-    body.appendChild(el('div', { class: 'row', style: 'margin-top:12px' }, [edit]));
+    const actions = el('div', { class: 'row wrap', style: 'margin-top:12px' }, [edit]);
+    body.appendChild(actions);
     head.addEventListener('click', () => item.classList.toggle('open'));
     item.append(head, body);
     return item;
   }
 
   draw();
+}
+
+function assignSpellButton(spell, api, root) {
+  const assigned = (api.state.player?.characters || []).some((character) => character.spellbook?.knownSpellIds?.includes(spell.id));
+  const button = el('button', { class: `btn sm ${assigned ? 'accent' : 'ghost'}`, type: 'button', text: assigned ? 'Assegnata' : 'Assegna' });
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openSpellAssignment(spell, api, root);
+  });
+  return button;
+}
+
+function assignedCharacterMarkers(spell, api) {
+  const characters = (api.state.player?.characters || []).filter((character) => character.spellbook?.knownSpellIds?.includes(spell.id));
+  if (!characters.length) return null;
+  const markers = el('span', { class: 'spell-player-markers', title: `Assegnata a: ${characters.map((character) => character.name).join(', ')}` });
+  for (const character of characters) {
+    markers.appendChild(el('span', { class: 'spell-player-marker', style: `background:${character.color}`, title: character.name, 'aria-label': character.name }));
+  }
+  return markers;
+}
+
+function openSpellAssignment(spell, api, root) {
+  const body = el('div', {});
+  body.appendChild(el('p', { class: 'muted', text: `Scegli a quale personaggio assegnare "${spell.name}".` }));
+  const characters = api.state.player?.characters || [];
+  if (!characters.length) {
+    body.appendChild(el('div', { class: 'empty', text: 'Nessun personaggio Player creato.' }));
+    api.openDrawer(`Assegna: ${spell.name}`, body);
+    return;
+  }
+  for (const character of characters) {
+    character.spellbook = character.spellbook || { knownSpellIds: [], preparedSpellIds: [], slots: {} };
+    character.spellbook.knownSpellIds = character.spellbook.knownSpellIds || [];
+    const assigned = character.spellbook.knownSpellIds.includes(spell.id);
+    const row = el('div', { class: 'list-linkitem' });
+    const name = el('span', { class: 'grow', text: character.name });
+    const button = el('button', { class: `chip${assigned ? ' on' : ''}`, type: 'button', text: assigned ? 'Rimuovi' : 'Assegna' });
+    button.addEventListener('click', () => {
+      if (assigned) character.spellbook.knownSpellIds = character.spellbook.knownSpellIds.filter((id) => id !== spell.id);
+      else character.spellbook.knownSpellIds.push(spell.id);
+      api.save();
+      api.closeDrawer();
+      api.refresh('spells');
+      api.toast(assigned ? `${spell.name} rimossa da ${character.name}` : `${spell.name} assegnata a ${character.name}`);
+    });
+    row.append(name, button);
+    body.appendChild(row);
+  }
+  api.openDrawer(`Assegna: ${spell.name}`, body);
 }
 
 function normalizeSpellRecord(spell) {

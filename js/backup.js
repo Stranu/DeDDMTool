@@ -2,8 +2,8 @@
 // Il file è JSON leggibile e può contenere tutte le categorie oppure una sola.
 
 export const BACKUP_FORMAT = 'dm-toolkit-backup';
-export const BACKUP_VERSION = 1;
-export const BACKUP_CATEGORIES = ['encounter', 'roster', 'monsters', 'conditions', 'spells'];
+export const BACKUP_VERSION = 2;
+export const BACKUP_CATEGORIES = ['encounter', 'roster', 'monsters', 'player', 'conditions', 'spells'];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -22,6 +22,7 @@ export function createBackup(state, categories = BACKUP_CATEGORIES) {
     };
   }
   if (selected.includes('monsters')) data.monsters = clone(state.roster?.archive || []);
+  if (selected.includes('player')) data.player = { mode: state.mode || 'gm', ...clone(state.player || { activeId: null, characters: [] }) };
   if (selected.includes('conditions')) data.conditions = clone(state.conditions || []);
   if (selected.includes('spells')) data.spells = clone(state.spells || []);
 
@@ -47,11 +48,14 @@ export function parseBackup(text) {
   if (!backup || backup.format !== BACKUP_FORMAT) {
     throw new Error('Formato backup non riconosciuto.');
   }
-  if (backup.version !== BACKUP_VERSION) {
+  if (![1, BACKUP_VERSION].includes(backup.version)) {
     throw new Error(`Versione backup non supportata: ${backup.version ?? 'sconosciuta'}.`);
   }
   if (!backup.categories || typeof backup.categories !== 'object') {
     throw new Error('Il backup non contiene categorie valide.');
+  }
+  if (backup.version === 1 && !backup.categories.player) {
+    backup.categories.player = { activeId: null, characters: [], mode: 'gm' };
   }
   const present = BACKUP_CATEGORIES.filter((category) => Object.prototype.hasOwnProperty.call(backup.categories, category));
   if (!present.length) throw new Error('Il backup non contiene dati importabili.');
@@ -63,6 +67,7 @@ export function categoryLabel(category) {
     encounter: 'iniziativa',
     roster: 'PG/Alleati',
     monsters: 'Mostri/PNG',
+    player: 'personaggi Player',
     conditions: 'condizioni',
     spells: 'magie'
   }[category] || category;

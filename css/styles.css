@@ -288,3 +288,40 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 }
 .favorite-toggle:hover, .favorite-toggle:focus-visible { color: var(--accent-2); background: rgba(201,162,75,.12); }
 .favorite-toggle.on { color: var(--accent-2); }
+
+/* ---------- Player mode ---------- */
+.player-card { display: flex; align-items: flex-start; gap: 8px; }
+.player-card-main { flex: 1; min-width: 0; appearance: none; border: 0; background: transparent; color: var(--text); text-align: left; padding: 0; cursor: pointer; font: inherit; }
+.player-card-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.player-card-title { display: flex; align-items: center; gap: 8px; font-size: 17px; margin-bottom: 3px; }
+.player-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.derived-card { margin-top: 12px; background: rgba(138,92,246,.08); }
+.derived-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.derived-grid.compact { grid-template-columns: repeat(3, 1fr); margin-top: 10px; }
+.derived-stat { display: flex; flex-direction: column; gap: 2px; padding: 7px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }
+.derived-stat span { color: var(--text-dim); font-size: 11px; }
+.derived-stat strong { font-size: 16px; }
+.player-section { margin-top: 18px; }
+.inventory-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.inventory-row.equipped { border-color: var(--accent); background: rgba(138,92,246,.10); }
+.inventory-name { flex: 1; min-width: 0; appearance: none; border: 0; background: transparent; color: var(--text); text-align: left; padding: 2px 0; font: inherit; cursor: pointer; }
+.inventory-name span { display: block; font-size: 11px; color: var(--text-dim); }
+.compact-check { padding: 2px; font-size: 11px; white-space: nowrap; }
+
+@media (max-width: 520px) {
+  .derived-grid { grid-template-columns: repeat(2, 1fr); }
+  .player-stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .inventory-row { flex-wrap: wrap; }
+  .inventory-name { flex-basis: 100%; }
+}
+
+.player-card { border-left: 4px solid var(--player-color, var(--accent)); }
+.player-color-dot { width: 13px; height: 13px; flex: 0 0 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); }
+.color-input { width: 58px; height: 42px; padding: 4px; }
+.derived-list { display: flex; flex-direction: column; gap: 5px; }
+.proficiency-row { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 5px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.proficiency-row .checkline { flex: 1; }
+.proficiency-row strong { min-width: 32px; text-align: right; }
+.skill-row .skill-label { flex: 1; min-width: 0; }
+.spell-player-markers { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; }
+.spell-player-marker { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255,255,255,.65); box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
