@@ -136,7 +136,7 @@ export function renderPlayer(root, api) {
   normalizePlayerState(state);
   root.innerHTML = '';
   const add = el('button', { class: 'btn primary', type: 'button', html: ICON.plus + '<span>Nuovo personaggio</span>' });
-  add.addEventListener('click', () => openCharacterEditor(createPlayerCharacter(), api, root, true));
+  add.addEventListener('click', () => openCharacterEditor(createPlayerCharacter(), api, root, true, { inline: true }));
   root.appendChild(el('div', { class: 'row', style: 'margin-bottom:10px' }, [el('div', { class: 'grow' }), add]));
 
   if (!state.player.characters.length) {
@@ -230,8 +230,8 @@ function openCharacterView(character, api, root) {
   normalizeCharacter(character);
   const derived = calculateDerived(character);
   const body = el('div', { class: 'player-readonly' });
-  const edit = el('button', { class: 'btn primary block', type: 'button', html: ICON.edit + '<span>Modifica scheda</span>' });
-  edit.addEventListener('click', () => openCharacterEditor(character, api, root, false));
+  const edit = el('button', { class: 'btn primary', type: 'button', html: ICON.edit + '<span>Modifica scheda</span>' });
+  edit.addEventListener('click', () => openCharacterEditor(character, api, root, false, { inline: true }));
   body.appendChild(el('div', { class: 'player-hero', style: `--player-color:${character.color}` }, [
     el('span', { class: 'player-color-dot large' }),
     el('div', { class: 'grow' }, [el('h2', { text: character.name }), el('div', { class: 'muted', text: [character.species, character.classes, `Livello ${character.level}`].filter(Boolean).join(' · ') })])
@@ -240,14 +240,35 @@ function openCharacterView(character, api, root) {
     derivedStat('CA', derived.armorClass), derivedStat('PF', `${character.hpCurrent}/${character.hpMax}`), derivedStat('PF temp', character.tempHp),
     derivedStat('Iniziativa', signed(derived.initiative)), derivedStat('Percezione', derived.passivePerception), derivedStat('Bonus comp.', `+${derived.proficiency}`)
   ]));
-  body.appendChild(readOnlySection('Caratteristiche', ABILITIES.map(([key, label, abbr]) => `${abbr}: ${character.stats[key]} (${signed(derived.modifiers[key])})`).join(' · ')));
-  body.appendChild(readOnlySection('Tiri salvezza', SAVING_THROWS.map(([key, label]) => `${label}: ${signed(derived.savingThrows[key])}`).join(' · ')));
-  body.appendChild(readOnlySection('Abilità', SKILLS.map(([key, label]) => `${label}: ${signed(derived.skills[key])}`).join(' · ')));
+  body.appendChild(abilitySheetSection(character, derived));
   body.appendChild(equippedSection(character, api, root));
   body.appendChild(spellbookSection(character, api, root, { editable: false }));
   if (character.notes) body.appendChild(readOnlySection('Note', character.notes, true));
-  body.appendChild(edit);
-  api.openDrawer(`Scheda: ${character.name}`, body);
+  const page = el('div', { class: 'player-sheet-page' });
+  const toolbar = el('div', { class: 'player-sheet-toolbar' });
+  const back = el('button', { class: 'btn ghost', type: 'button', html: '<span>← Personaggi</span>' });
+  back.addEventListener('click', () => { api.refresh('player'); });
+  toolbar.append(back, el('div', { class: 'grow' }), edit);
+  page.append(toolbar, body);
+  root.innerHTML = '';
+  root.appendChild(page);
+}
+
+function abilitySheetSection(character, derived) {
+  const section = el('section', { class: 'player-section' });
+  section.appendChild(el('div', { class: 'mini-title', text: 'Caratteristiche, tiri salvezza e abilità' }));
+  const grid = el('div', { class: 'ability-sheet-grid' });
+  for (const [ability, label, abbr] of ABILITIES) {
+    const block = el('section', { class: 'ability-sheet-block' });
+    block.appendChild(el('h3', { text: `${label} ${character.stats[ability]} / ${signed(derived.modifiers[ability])}` }));
+    const save = el('div', { class: 'ability-sheet-row' }, [el('span', { text: 'TS' }), el('strong', { text: signed(derived.savingThrows[ability]) })]);
+    block.appendChild(save);
+    for (const [skill, skillLabel, skillAbility] of SKILLS.filter((item) => item[2] === ability)) {
+      block.appendChild(el('div', { class: 'ability-sheet-row' }, [el('span', { text: skillLabel }), el('strong', { text: signed(derived.skills[skill]) })]));
+    }
+    grid.appendChild(block);
+  }
+  section.appendChild(grid); return section;
 }
 
 function readOnlySection(title, text, multiline = false) {
@@ -272,10 +293,11 @@ function equippedSection(character, api, root) {
   section.appendChild(list); return section;
 }
 
-function openCharacterEditor(character, api, root, isNew) {
+function openCharacterEditor(character, api, root, isNew, options = {}) {
+  const inline = options.inline === true;
   normalizeCharacter(character);
   const body = el('div', {});
-  const save = () => { normalizeCharacter(character); api.save(); api.refresh('player'); };
+  const save = () => { normalizeCharacter(character); api.save(); if (!inline) api.refresh('player'); };
   const name = textInput('Nome personaggio *', character.name, 'es. Arannis');
   const playerName = textInput('Nome giocatore', character.playerName, 'Nome del giocatore');
   const level = numberInput('Livello', character.level, 1);
@@ -329,7 +351,7 @@ function openCharacterEditor(character, api, root, isNew) {
   notes.input.addEventListener('input', () => { character.notes = notes.input.value; save(); });
   body.appendChild(notes.field);
 
-  body.appendChild(inventorySection(character, api, root));
+  body.appendChild(inventorySection(character, api, root, inline ? 'player-sheet' : 'player'));
   body.appendChild(spellbookSection(character, api, root));
 
   const remove = el('button', { class: 'btn danger block', type: 'button', style: 'margin-top:20px', html: ICON.trash + '<span>Elimina personaggio</span>' });
@@ -343,8 +365,22 @@ function openCharacterEditor(character, api, root, isNew) {
   api.state.player.activeId = character.id;
   if (isNew && !api.state.player.characters.includes(character)) api.state.player.characters.push(character);
   api.save();
-  api.openDrawer(isNew ? 'Nuovo personaggio' : `Scheda: ${character.name}`, body);
-  updateDerived();
+  if (inline) {
+    const page = el('div', { class: 'player-sheet-page editing' });
+    const toolbar = el('div', { class: 'player-sheet-toolbar' });
+    const back = el('button', { class: 'btn ghost', type: 'button', html: '<span>← Personaggi</span>' });
+    const view = el('button', { class: 'btn primary', type: 'button', html: '<span>Visualizza scheda</span>' });
+    back.addEventListener('click', () => api.refresh('player'));
+    view.addEventListener('click', () => openCharacterView(character, api, root));
+    toolbar.append(back, el('div', { class: 'grow' }), view);
+    page.append(toolbar, body);
+    root.innerHTML = '';
+    root.appendChild(page);
+    updateDerived();
+  } else {
+    api.openDrawer(isNew ? 'Nuovo personaggio' : `Scheda: ${character.name}`, body);
+    updateDerived();
+  }
 }
 
 function savingThrowsSection(character, onChange) {
@@ -409,11 +445,11 @@ function skillsSection(character, onChange) {
   redraw(); section.appendChild(list); return section;
 }
 
-function inventorySection(character, api, root) {
+function inventorySection(character, api, root, returnView = 'player') {
   const section = el('section', { class: 'player-section' });
   const header = el('div', { class: 'row' }, [el('div', { class: 'mini-title grow', text: 'Inventario ed equipaggiamento' })]);
   const add = el('button', { class: 'btn sm primary', type: 'button', html: ICON.plus + '<span>Aggiungi oggetto</span>' });
-  add.addEventListener('click', () => openItemEditor(character, createItem(), api, root, true));
+  add.addEventListener('click', () => openItemEditor(character, createItem(), api, root, true, returnView));
   header.appendChild(add); section.appendChild(header);
   const list = el('div', {}); section.appendChild(list);
   const redraw = () => {
@@ -422,7 +458,7 @@ function inventorySection(character, api, root) {
     for (const item of character.inventory) {
       const row = el('div', { class: `inventory-row${item.equipped ? ' equipped' : ''}` });
       const open = el('button', { class: 'inventory-name', type: 'button' }, [el('strong', { text: item.name || 'Oggetto senza nome' }), el('span', { class: 'muted', text: `${item.category} · x${item.quantity}` })]);
-      open.addEventListener('click', () => openItemEditor(character, item, api, root, false));
+      open.addEventListener('click', () => openItemEditor(character, item, api, root, false, returnView));
       row.appendChild(open);
       const equipped = el('label', { class: 'checkline compact-check' });
       const equipCheck = el('input', { type: 'checkbox' }); equipCheck.checked = Boolean(item.equipped);
@@ -469,12 +505,28 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     character.spellbook.slots[level] = slots;
     const heading = el('div', { class: 'row spell-level-heading' }, [el('strong', { text: level === 0 ? 'Trucchetti' : `${level}° livello` })]);
     if (level > 0) {
-      const slotText = el('span', { class: 'badge grow', text: `Slot: ${slots.used}/${slots.max}` });
-      heading.appendChild(slotText);
+      const slotText = el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot massimi' });
       if (editable) {
+        const minus = el('button', { class: 'slot-adjust', type: 'button', text: '−', 'aria-label': `Riduci slot usati livello ${level}` });
+        const plus = el('button', { class: 'slot-adjust', type: 'button', text: '+', 'aria-label': `Aumenta slot usati livello ${level}` });
+        const updateSlots = () => {
+          slots.used = Math.max(0, Math.min(slots.used, slots.max));
+          slotText.textContent = `${slots.used}/${slots.max}`;
+          minus.disabled = slots.used <= 0;
+          plus.disabled = slots.used >= slots.max;
+          group.querySelectorAll('.spell-launch').forEach((button) => {
+            button.disabled = slots.used >= slots.max;
+            button.textContent = slots.used < slots.max ? 'Lancia' : 'Scarico';
+          });
+        };
+        minus.addEventListener('click', () => { slots.used -= 1; updateSlots(); api.save(); });
+        plus.addEventListener('click', () => { slots.used += 1; updateSlots(); api.save(); });
+        heading.appendChild(el('div', { class: 'slot-controls' }, [minus, slotText, plus]));
         const max = el('input', { class: 'slot-input', type: 'number', min: '0', value: slots.max, 'aria-label': `Slot massimi livello ${level}` });
-        max.addEventListener('change', () => { slots.max = Math.max(0, Number(max.value) || 0); slots.used = Math.min(slots.used, slots.max); api.save(); renderPlayer(root, api); });
+        max.addEventListener('change', () => { slots.max = Math.max(0, Number(max.value) || 0); updateSlots(); api.save(); });
         heading.appendChild(max);
+      } else {
+        heading.appendChild(el('span', { class: 'badge', text: `Slot: ${slots.used}/${slots.max}` }));
       }
     }
     group.appendChild(heading);
@@ -492,15 +544,13 @@ function spellbookSection(character, api, root, options = { editable: true }) {
         row.appendChild(el('span', { class: 'badge', text: 'Preparata' }));
       }
       if (level > 0) {
-        const launch = el('button', { class: 'chip on', type: 'button', text: slots.used < slots.max ? 'Lancia' : 'Scarico' });
+        const launch = el('button', { class: 'chip on spell-launch', type: 'button', text: slots.used < slots.max ? 'Lancia' : 'Scarico' });
         launch.disabled = slots.used >= slots.max;
         launch.addEventListener('click', () => {
           if (slots.used >= slots.max) return;
           slots.used += 1;
           api.save();
-          launch.textContent = slots.used < slots.max ? 'Lancia' : 'Scarico';
-          launch.disabled = slots.used >= slots.max;
-          slotTextUpdate(group, slots);
+          updateSlotGroup(group, slots);
         });
         row.appendChild(launch);
       }
@@ -511,9 +561,18 @@ function spellbookSection(character, api, root, options = { editable: true }) {
   return section;
 }
 
-function slotTextUpdate(group, slots) {
-  const badge = group.querySelector('.spell-level-heading .badge');
-  if (badge) badge.textContent = `Slot: ${slots.used}/${slots.max}`;
+function updateSlotGroup(group, slots) {
+  const slot = group.querySelector('.slot-used-box');
+  if (slot) slot.textContent = `${slots.used}/${slots.max}`;
+  const adjust = group.querySelectorAll('.slot-adjust');
+  if (adjust.length) {
+    adjust[0].disabled = slots.used <= 0;
+    adjust[adjust.length - 1].disabled = slots.used >= slots.max;
+  }
+  group.querySelectorAll('.spell-launch').forEach((button) => {
+    button.disabled = slots.used >= slots.max;
+    button.textContent = slots.used < slots.max ? 'Lancia' : 'Scarico';
+  });
 }
 
 export function openItemEditor(character, item, api, root, isNew, returnView = 'player') {
@@ -546,6 +605,12 @@ export function openItemEditor(character, item, api, root, isNew, returnView = '
   const maxDex = numberInput('Massimo bonus DES', item.maxDexBonus === '' ? 99 : item.maxDexBonus, 0);
   const shieldBonus = numberInput('Bonus scudo', item.shieldBonus, 0);
   body.append(field('Dati arma', weapon.field), damageType.field, attackBonus.field, damageBonus.field, field('Statistica arma', weaponAbility), finesse.field, field('Categoria armatura', armorCategory), armorBase.field, maxDex.field, shieldBonus.field);
+  const finishItemEdit = () => {
+    api.save();
+    api.closeDrawer();
+    if (returnView === 'player-sheet') openCharacterEditor(character, api, root, false, { inline: true });
+    else api.refresh(returnView);
+  };
   const saveButton = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:12px', text: isNew ? 'Aggiungi oggetto' : 'Salva oggetto' });
   saveButton.addEventListener('click', () => {
     if (!name.input.value.trim()) { api.toast('Il nome dell’oggetto è obbligatorio.'); return; }
@@ -557,7 +622,7 @@ export function openItemEditor(character, item, api, root, isNew, returnView = '
     if (item.attuned && character.attunement.itemIds.filter((id) => id !== item.id).length >= character.attunement.max) { api.toast(`Sintonizzazione massima: ${character.attunement.max}`); return; }
     if (isNew) character.inventory.push(item);
     character.attunement.itemIds = character.inventory.filter((x) => x.attuned).map((x) => x.id);
-    api.save(); api.closeDrawer(); api.refresh(returnView);
+    finishItemEdit();
   });
   body.appendChild(saveButton);
   if (!isNew) {
@@ -566,7 +631,7 @@ export function openItemEditor(character, item, api, root, isNew, returnView = '
       if (!confirm(`Rimuovere "${item.name}" dall’inventario?`)) return;
       character.inventory = character.inventory.filter((entry) => entry.id !== item.id);
       character.attunement.itemIds = character.inventory.filter((entry) => entry.attuned).map((entry) => entry.id);
-      api.save(); api.closeDrawer(); api.refresh(returnView);
+      finishItemEdit();
     });
     body.appendChild(remove);
   }

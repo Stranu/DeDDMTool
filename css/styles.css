@@ -316,7 +316,7 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 }
 
 .player-card { border-left: 4px solid var(--player-color, var(--accent)); }
-.player-color-dot { width: 13px; height: 13px; flex: 0 0 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); }
+.player-color-dot { width: 13px; height: 13px; flex: 0 0 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); background: var(--player-color, var(--accent)); }
 .color-input { width: 58px; height: 42px; padding: 4px; }
 .derived-list { display: flex; flex-direction: column; gap: 5px; }
 .proficiency-row { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 5px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }

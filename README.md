@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v12` a `dm-toolkit-v13`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v13` a `dm-toolkit-v14`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 
@@ -85,3 +85,5 @@ Dal menu in alto a sinistra è possibile passare tra modalità **GM** e **Player
 Le schede Player possono avere un colore identificativo selezionabile; le magie assegnate mostrano un pallino per ogni personaggio assegnatario. Sono disponibili tiri salvezza e abilità calcolati con competenza e doppia competenza, oltre a bonus temporanei globali e bonus ai tiri salvezza forniti dagli oggetti equipaggiati.
 
 La modalità Player mostra inizialmente una scheda non editabile e raffinata; il pulsante **Modifica scheda** apre i controlli completi. È presente una tab **Inventario** separata, con categorie, equipaggiamento e oggetti modificabili. La scheda personaggio mostra solo gli oggetti equipaggiati, le armi con TxC/danni calcolati e le magie raggruppate per livello con slot e pulsante **Lancia**.
+
+La scheda Player viene visualizzata in pagina intera: da qui è possibile tornare all’elenco o passare alla modalità modifica. Le abilità sono raggruppate per caratteristica, mentre gli slot magia hanno controlli manuali per diminuire/aumentare gli slot usati e un pulsante Lancia.
