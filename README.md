@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v6` a `dm-toolkit-v7`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v7` a `dm-toolkit-v8`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 
@@ -69,3 +69,7 @@ Le modifiche di iniziativa e roster vengono salvate automaticamente in IndexedDB
 ## Magie
 
 La lista può essere ordinata per nome oppure per livello crescente, oltre ai filtri per livello, classe e scuola.
+
+## Normalizzazione delle descrizioni
+
+Durante l’importazione CSV, le descrizioni vengono ripulite dai ritorni a capo tipografici e dagli spazi superflui. I bullet delle descrizioni vengono mantenuti come righe separate e il paragrafo “Ai Livelli Più Alti.” viene preservato. Il testo originale resta disponibile nel campo interno `descriptionRaw`; per applicare la normalizzazione ai dati già importati è sufficiente reimportare il CSV.

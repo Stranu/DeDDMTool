@@ -275,3 +275,5 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .readonly-value { color: var(--text); white-space: pre-wrap; }
 .readonly-note .readonly-value { max-height: 180px; overflow-y: auto; }
 .list-linkitem:disabled { opacity: .7; cursor: default; }
+
+.combatant:focus { outline: 2px solid var(--active-glow); outline-offset: 2px; }

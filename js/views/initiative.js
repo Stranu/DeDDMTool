@@ -46,7 +46,12 @@ export function renderInitiative(root, api) {
     const hpMax = number(c.hpMax);
     const hpCurrent = number(c.hpCurrent);
     const hpPercent = hpMax > 0 ? Math.max(0, Math.min(100, (hpCurrent / hpMax) * 100)) : 0;
-    const card = el('article', { class: `combatant${active ? ' active' : ''}${c.dead ? ' dead' : ''}` });
+    const card = el('article', {
+      class: `combatant${active ? ' active' : ''}${c.dead ? ' dead' : ''}`,
+      tabindex: '-1',
+      dataset: { combatantId: c.id },
+      'aria-current': active ? 'true' : false
+    });
 
     const init = el('input', {
       class: 'c-init-input', type: 'number', inputmode: 'numeric', min: '-99', max: '99',
@@ -166,7 +171,18 @@ export function renderInitiative(root, api) {
     state.encounter.activeId = list[next].id;
     api.save();
     renderInitiative(root, api);
+    focusActiveCombatant(root, state.encounter.activeId);
   }
+}
+
+function focusActiveCombatant(root, combatantId) {
+  requestAnimationFrame(() => {
+    const card = Array.from(root.querySelectorAll('[data-combatant-id]'))
+      .find((node) => node.dataset.combatantId === combatantId);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    card.focus({ preventScroll: true });
+  });
 }
 
 // ---------- Drawer reset ----------

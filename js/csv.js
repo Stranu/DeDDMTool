@@ -50,6 +50,52 @@ function toObjects(rows) {
   });
 }
 
+// Le descrizioni dei CSV provengono da testo impaginato: i newline spesso
+// spezzano una frase invece di indicare un nuovo paragrafo. Ripuliamo solo
+// questi ritorni a capo, preservando bullet e intestazioni semantiche.
+export function normalizeDescription(raw, kind = 'spell') {
+  const lines = String(raw || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim());
+
+  if (kind === 'condition') {
+    const blocks = [];
+    let current = '';
+    for (const line of lines) {
+      if (!line) {
+        if (current) { blocks.push(current); current = ''; }
+        continue;
+      }
+      if (/^-\s+/.test(line)) {
+        if (current) blocks.push(current);
+        current = line;
+      } else {
+        current = current ? `${current} ${line}` : line;
+      }
+    }
+    if (current) blocks.push(current);
+    return tidyDescription(blocks.join('\n'));
+  }
+
+  let text = lines.filter(Boolean).join(' ');
+  // Il CSV usa il bullet del font originale (U+F0B7), non il bullet Unicode.
+  text = text.replace(/\s*\uf0b7\s*/g, '\n• ');
+  // Questo titolo è un vero sottoparagrafo, non un ritorno a capo tipografico.
+  text = text.replace(/\s+((?:Ai|Al|A)\s+Livelli\s+Più\s+Alti\.)/gi, '\n\n$1');
+  return tidyDescription(text);
+}
+
+function tidyDescription(text) {
+  return text
+    .replace(/[ \t]+/g, ' ')
+    .replace(/[ \t]+([,.;:!?])/g, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function slugify(s) {
   return fold(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || uid();
 }
@@ -66,12 +112,16 @@ export function parseConditions(text) {
     let id = slugify(name);
     while (seen.has(id)) id += '-2';
     seen.add(id);
+    const original = o['Original Name'] || o['Original'] || '';
+    const descriptionRaw = o['Description'] || o['Descrizione'] || '';
+    const description = normalizeDescription(descriptionRaw, 'condition');
     out.push({
       id,
       name,
-      original: o['Original Name'] || o['Original'] || '',
-      description: (o['Description'] || o['Descrizione'] || '').trim(),
-      search: fold(name + ' ' + (o['Original Name'] || '') + ' ' + (o['Description'] || ''))
+      original,
+      descriptionRaw,
+      description,
+      search: fold(name + ' ' + original + ' ' + description)
     });
   }
   out.sort((a, b) => a.name.localeCompare(b.name, 'it'));
@@ -126,7 +176,8 @@ export function parseSpells(text) {
     const level = parseLevel(o['Level'] || o['Livello'] || '');
     const classes = parseClasses(o['Class'] || o['Classi'] || o['Classe'] || '');
     const original = o['Original Name'] || o['Original'] || '';
-    const description = (o['Description'] || o['Descrizione'] || '').trim();
+    const descriptionRaw = o['Description'] || o['Descrizione'] || '';
+    const description = normalizeDescription(descriptionRaw, 'spell');
 
     out.push({
       id,
@@ -140,6 +191,7 @@ export function parseSpells(text) {
       range: o['Range'] || o['Gittata'] || '',
       components: o['Components'] || o['Componenti'] || '',
       duration: o['Duration'] || o['Durata'] || '',
+      descriptionRaw,
       description,
       classes,
       search: fold([name, original, description, school, classes.join(' ')].join(' '))
