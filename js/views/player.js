@@ -84,7 +84,7 @@ function createItem() {
   return {
     id: uid(), name: '', category: 'item', quantity: 1, weight: '', value: '', description: '',
     equipped: false, requiresAttunement: false, attuned: false, savingThrowBonus: 0, skillBonus: 0,
-    attackBonus: '', damage: '', damageType: '', finesse: false,
+    attackBonus: '', damage: '', damageType: '', damageBonus: 0, weaponAbility: 'strength', finesse: false,
     armorCategory: 'light', armorBase: '', maxDexBonus: '', shieldBonus: ''
   };
 }
@@ -163,7 +163,7 @@ export function renderPlayer(root, api) {
         derivedStat('Inventario', character.inventory.length), derivedStat('Magie', character.spellbook.knownSpellIds.length)
       ])
     ]);
-    open.addEventListener('click', () => openCharacterEditor(character, api, root, false));
+    open.addEventListener('click', () => openCharacterView(character, api, root));
     const remove = el('button', { class: 'dot-btn', type: 'button', title: 'Elimina personaggio', html: ICON.trash });
     remove.addEventListener('click', () => {
       if (!confirm(`Eliminare la scheda di "${character.name}"?`)) return;
@@ -175,6 +175,101 @@ export function renderPlayer(root, api) {
     card.append(open, remove);
     return card;
   }
+}
+
+export function renderInventory(root, api) {
+  normalizePlayerState(api.state);
+  root.innerHTML = '';
+  const characters = api.state.player.characters;
+  if (!characters.length) {
+    root.appendChild(el('div', { class: 'empty', text: 'Crea prima un personaggio nella sezione Personaggi.' }));
+    return;
+  }
+  const select = el('select', { class: 'input', 'aria-label': 'Seleziona personaggio' });
+  for (const character of characters) select.appendChild(el('option', { value: character.id, text: character.name }));
+  select.value = api.state.player.activeId && characters.some((character) => character.id === api.state.player.activeId)
+    ? api.state.player.activeId : characters[0].id;
+  api.state.player.activeId = select.value;
+  const toolbar = el('div', { class: 'row', style: 'margin-bottom:12px' }, [el('div', { class: 'grow' }, [select])]);
+  root.appendChild(toolbar);
+  const content = el('div', {}); root.appendChild(content);
+  const draw = () => {
+    const character = characters.find((item) => item.id === select.value) || characters[0];
+    api.state.player.activeId = character.id;
+    content.innerHTML = '';
+    content.appendChild(el('div', { class: 'player-hero', style: `--player-color:${character.color}` }, [
+      el('span', { class: 'player-color-dot large' }),
+      el('div', { class: 'grow' }, [el('h2', { text: character.name }), el('div', { class: 'muted', text: 'Inventario ed equipaggiamento' })])
+    ]));
+    for (const [category, label] of ITEM_CATEGORIES) {
+      const items = character.inventory.filter((item) => item.category === category);
+      const section = el('section', { class: 'inventory-category' });
+      section.appendChild(el('div', { class: 'mini-title', text: `${label} (${items.length})` }));
+      if (!items.length) section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessun oggetto.' }));
+      for (const item of items) {
+        const row = el('div', { class: `inventory-row${item.equipped ? ' equipped' : ''}` });
+        const open = el('button', { class: 'inventory-name', type: 'button' }, [el('strong', { text: item.name }), el('span', { class: 'muted', text: item.category === 'weapon' ? weaponSummary(item, character) : `Quantità: ${item.quantity}` })]);
+        open.addEventListener('click', () => openItemEditor(character, item, api, root, false, 'inventory'));
+        const equip = el('button', { class: `chip${item.equipped ? ' on' : ''}`, type: 'button', text: item.equipped ? 'Equipaggiato' : 'Equipaggia' });
+        equip.addEventListener('click', () => { item.equipped = !item.equipped; api.save(); draw(); });
+        row.append(open, equip);
+        if (item.requiresAttunement) row.appendChild(el('span', { class: `badge${item.attuned ? ' cond' : ''}`, text: item.attuned ? 'Sintonizzato' : 'Richiede sintonia' }));
+        section.appendChild(row);
+      }
+      content.appendChild(section);
+    }
+    const add = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:18px', html: ICON.plus + '<span>Aggiungi oggetto</span>' });
+    add.addEventListener('click', () => openItemEditor(character, createItem(), api, root, true, 'inventory'));
+    content.appendChild(add);
+  };
+  select.addEventListener('change', () => { api.state.player.activeId = select.value; api.save(); draw(); });
+  draw();
+}
+
+function openCharacterView(character, api, root) {
+  normalizeCharacter(character);
+  const derived = calculateDerived(character);
+  const body = el('div', { class: 'player-readonly' });
+  const edit = el('button', { class: 'btn primary block', type: 'button', html: ICON.edit + '<span>Modifica scheda</span>' });
+  edit.addEventListener('click', () => openCharacterEditor(character, api, root, false));
+  body.appendChild(el('div', { class: 'player-hero', style: `--player-color:${character.color}` }, [
+    el('span', { class: 'player-color-dot large' }),
+    el('div', { class: 'grow' }, [el('h2', { text: character.name }), el('div', { class: 'muted', text: [character.species, character.classes, `Livello ${character.level}`].filter(Boolean).join(' · ') })])
+  ]));
+  body.appendChild(el('div', { class: 'derived-grid' }, [
+    derivedStat('CA', derived.armorClass), derivedStat('PF', `${character.hpCurrent}/${character.hpMax}`), derivedStat('PF temp', character.tempHp),
+    derivedStat('Iniziativa', signed(derived.initiative)), derivedStat('Percezione', derived.passivePerception), derivedStat('Bonus comp.', `+${derived.proficiency}`)
+  ]));
+  body.appendChild(readOnlySection('Caratteristiche', ABILITIES.map(([key, label, abbr]) => `${abbr}: ${character.stats[key]} (${signed(derived.modifiers[key])})`).join(' · ')));
+  body.appendChild(readOnlySection('Tiri salvezza', SAVING_THROWS.map(([key, label]) => `${label}: ${signed(derived.savingThrows[key])}`).join(' · ')));
+  body.appendChild(readOnlySection('Abilità', SKILLS.map(([key, label]) => `${label}: ${signed(derived.skills[key])}`).join(' · ')));
+  body.appendChild(equippedSection(character, api, root));
+  body.appendChild(spellbookSection(character, api, root, { editable: false }));
+  if (character.notes) body.appendChild(readOnlySection('Note', character.notes, true));
+  body.appendChild(edit);
+  api.openDrawer(`Scheda: ${character.name}`, body);
+}
+
+function readOnlySection(title, text, multiline = false) {
+  return el('section', { class: 'player-section' }, [el('div', { class: 'mini-title', text: title }), el('div', { class: `readonly-value${multiline ? ' readonly-note' : ''}`, text })]);
+}
+
+function equippedSection(character, api, root) {
+  const section = el('section', { class: 'player-section' });
+  section.appendChild(el('div', { class: 'mini-title', text: 'Equipaggiamento' }));
+  const equipped = character.inventory.filter((item) => item.equipped);
+  if (!equipped.length) {
+    section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessun oggetto equipaggiato.' }));
+    return section;
+  }
+  const list = el('div', {});
+  for (const item of equipped) {
+    const row = el('div', { class: 'inventory-row equipped' });
+    const text = item.category === 'weapon' ? weaponSummary(item, character) : `${item.name} · ${item.category}`;
+    row.appendChild(el('div', { class: 'inventory-name' }, [el('strong', { text: item.name }), el('span', { class: 'muted', text })]));
+    list.appendChild(row);
+  }
+  section.appendChild(list); return section;
 }
 
 function openCharacterEditor(character, api, root, isNew) {
@@ -352,26 +447,76 @@ function inventorySection(character, api, root) {
   redraw(); return section;
 }
 
-function spellbookSection(character, api, root) {
+function spellbookSection(character, api, root, options = { editable: true }) {
+  const editable = options.editable !== false;
   const section = el('section', { class: 'player-section' });
   section.appendChild(el('div', { class: 'mini-title', text: `Magie assegnate (${character.spellbook.knownSpellIds.length})` }));
-  const list = el('div', {});
+  const grouped = new Map();
   for (const spellId of character.spellbook.knownSpellIds) {
     const spell = api.state.spells.find((item) => item.id === spellId);
     if (!spell) continue;
-    const row = el('div', { class: 'inventory-row' });
-    const name = el('button', { class: 'inventory-name', type: 'button', text: spell.name });
-    name.addEventListener('click', () => api.openDrawer(spell.name, spellDetails(spell)));
-    const prep = el('label', { class: 'checkline compact-check' });
-    const check = el('input', { type: 'checkbox' }); check.checked = character.spellbook.preparedSpellIds.includes(spellId);
-    check.addEventListener('change', () => { if (check.checked) character.spellbook.preparedSpellIds.push(spellId); else character.spellbook.preparedSpellIds = character.spellbook.preparedSpellIds.filter((id) => id !== spellId); api.save(); });
-    prep.append(check, document.createTextNode('Preparata')); row.append(name, prep); list.appendChild(row);
+    const level = spell.level ?? 0;
+    if (!grouped.has(level)) grouped.set(level, []);
+    grouped.get(level).push(spell);
   }
-  if (!list.children.length) list.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessuna magia assegnata. Usa Assegna nella sezione Magie.' }));
-  section.appendChild(list); return section;
+  if (!grouped.size) {
+    section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessuna magia assegnata. Usa Assegna nella sezione Magie.' }));
+    return section;
+  }
+  for (const level of [...grouped.keys()].sort((a, b) => a - b)) {
+    const group = el('section', { class: 'spell-level-group' });
+    const slots = character.spellbook.slots[level] || { max: 0, used: 0 };
+    character.spellbook.slots[level] = slots;
+    const heading = el('div', { class: 'row spell-level-heading' }, [el('strong', { text: level === 0 ? 'Trucchetti' : `${level}° livello` })]);
+    if (level > 0) {
+      const slotText = el('span', { class: 'badge grow', text: `Slot: ${slots.used}/${slots.max}` });
+      heading.appendChild(slotText);
+      if (editable) {
+        const max = el('input', { class: 'slot-input', type: 'number', min: '0', value: slots.max, 'aria-label': `Slot massimi livello ${level}` });
+        max.addEventListener('change', () => { slots.max = Math.max(0, Number(max.value) || 0); slots.used = Math.min(slots.used, slots.max); api.save(); renderPlayer(root, api); });
+        heading.appendChild(max);
+      }
+    }
+    group.appendChild(heading);
+    for (const spell of grouped.get(level).sort((a, b) => a.name.localeCompare(b.name, 'it'))) {
+      const row = el('div', { class: 'inventory-row spellbook-row' });
+      const name = el('button', { class: 'inventory-name', type: 'button' }, [el('strong', { text: spell.name }), spell.favorite ? el('span', { class: 'manual-spell-marker', text: ' ★ preferita' }) : null]);
+      name.addEventListener('click', () => api.openDrawer(spell.name, spellDetails(spell)));
+      row.appendChild(name);
+      if (editable) {
+        const prep = el('label', { class: 'checkline compact-check' });
+        const check = el('input', { type: 'checkbox' }); check.checked = character.spellbook.preparedSpellIds.includes(spell.id);
+        check.addEventListener('change', () => { if (check.checked && !character.spellbook.preparedSpellIds.includes(spell.id)) character.spellbook.preparedSpellIds.push(spell.id); else character.spellbook.preparedSpellIds = character.spellbook.preparedSpellIds.filter((id) => id !== spell.id); api.save(); });
+        prep.append(check, document.createTextNode('Preparata')); row.appendChild(prep);
+      } else if (character.spellbook.preparedSpellIds.includes(spell.id)) {
+        row.appendChild(el('span', { class: 'badge', text: 'Preparata' }));
+      }
+      if (level > 0) {
+        const launch = el('button', { class: 'chip on', type: 'button', text: slots.used < slots.max ? 'Lancia' : 'Scarico' });
+        launch.disabled = slots.used >= slots.max;
+        launch.addEventListener('click', () => {
+          if (slots.used >= slots.max) return;
+          slots.used += 1;
+          api.save();
+          launch.textContent = slots.used < slots.max ? 'Lancia' : 'Scarico';
+          launch.disabled = slots.used >= slots.max;
+          slotTextUpdate(group, slots);
+        });
+        row.appendChild(launch);
+      }
+      group.appendChild(row);
+    }
+    section.appendChild(group);
+  }
+  return section;
 }
 
-function openItemEditor(character, item, api, root, isNew) {
+function slotTextUpdate(group, slots) {
+  const badge = group.querySelector('.spell-level-heading .badge');
+  if (badge) badge.textContent = `Slot: ${slots.used}/${slots.max}`;
+}
+
+export function openItemEditor(character, item, api, root, isNew, returnView = 'player') {
   normalizeItem(item);
   const body = el('div', {});
   const name = textInput('Nome oggetto *', item.name, 'es. Spada lunga +1');
@@ -390,25 +535,29 @@ function openItemEditor(character, item, api, root, isNew) {
   const weapon = textInput('Danno arma', item.damage, 'es. 1d8');
   const damageType = textInput('Tipo danno', item.damageType, 'es. tagliente');
   const attackBonus = textInput('Bonus attacco', item.attackBonus, 'es. +5');
+  const damageBonus = numberInput('Bonus danni', item.damageBonus, 0);
+  const weaponAbility = el('select', { class: 'input' });
+  for (const [key, label] of ABILITIES) weaponAbility.appendChild(el('option', { value: key, text: label }));
+  weaponAbility.value = item.weaponAbility || 'strength';
   const finesse = checkboxField('Accuratezza', item.finesse);
   const armorCategory = el('select', { class: 'input' });
   for (const [v, l] of [['light','Leggera'],['medium','Media'],['heavy','Pesante'],['shield','Scudo']]) armorCategory.appendChild(el('option', { value: v, text: l })); armorCategory.value = item.armorCategory;
   const armorBase = numberInput('CA armatura', item.armorBase, 0);
   const maxDex = numberInput('Massimo bonus DES', item.maxDexBonus === '' ? 99 : item.maxDexBonus, 0);
   const shieldBonus = numberInput('Bonus scudo', item.shieldBonus, 0);
-  body.append(field('Dati arma', weapon.field), damageType.field, attackBonus.field, finesse.field, field('Categoria armatura', armorCategory), armorBase.field, maxDex.field, shieldBonus.field);
+  body.append(field('Dati arma', weapon.field), damageType.field, attackBonus.field, damageBonus.field, field('Statistica arma', weaponAbility), finesse.field, field('Categoria armatura', armorCategory), armorBase.field, maxDex.field, shieldBonus.field);
   const saveButton = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:12px', text: isNew ? 'Aggiungi oggetto' : 'Salva oggetto' });
   saveButton.addEventListener('click', () => {
     if (!name.input.value.trim()) { api.toast('Il nome dell’oggetto è obbligatorio.'); return; }
     item.name = name.input.value.trim(); item.category = category.value; item.quantity = Number(quantity.input.value) || 1;
     item.weight = weight.input.value.trim(); item.value = value.input.value.trim(); item.description = description.input.value;
     item.equipped = equipped.input.checked; item.requiresAttunement = requires.input.checked; item.attuned = item.requiresAttunement && attuned.input.checked; item.savingThrowBonus = Number(savingThrowBonus.input.value) || 0;
-    item.damage = weapon.input.value.trim(); item.damageType = damageType.input.value.trim(); item.attackBonus = attackBonus.input.value.trim(); item.finesse = finesse.input.checked;
+    item.damage = weapon.input.value.trim(); item.damageType = damageType.input.value.trim(); item.attackBonus = attackBonus.input.value.trim(); item.damageBonus = Number(damageBonus.input.value) || 0; item.weaponAbility = weaponAbility.value; item.finesse = finesse.input.checked;
     item.armorCategory = armorCategory.value; item.armorBase = Number(armorBase.input.value) || ''; item.maxDexBonus = Number(maxDex.input.value) || ''; item.shieldBonus = Number(shieldBonus.input.value) || '';
     if (item.attuned && character.attunement.itemIds.filter((id) => id !== item.id).length >= character.attunement.max) { api.toast(`Sintonizzazione massima: ${character.attunement.max}`); return; }
     if (isNew) character.inventory.push(item);
     character.attunement.itemIds = character.inventory.filter((x) => x.attuned).map((x) => x.id);
-    api.save(); api.closeDrawer(); api.refresh('player');
+    api.save(); api.closeDrawer(); api.refresh(returnView);
   });
   body.appendChild(saveButton);
   if (!isNew) {
@@ -417,7 +566,7 @@ function openItemEditor(character, item, api, root, isNew) {
       if (!confirm(`Rimuovere "${item.name}" dall’inventario?`)) return;
       character.inventory = character.inventory.filter((entry) => entry.id !== item.id);
       character.attunement.itemIds = character.inventory.filter((entry) => entry.attuned).map((entry) => entry.id);
-      api.save(); api.closeDrawer(); api.refresh('player');
+      api.save(); api.closeDrawer(); api.refresh(returnView);
     });
     body.appendChild(remove);
   }
@@ -430,4 +579,13 @@ function numberInput(label, value, min = 0) { const input = el('input', { class:
 function checkboxField(label, value) { const input = el('input', { type: 'checkbox' }); input.checked = Boolean(value); return { input, field: el('label', { class: 'checkline' }, [input, document.createTextNode(label)]) }; }
 function field(label, control) { return el('div', { class: 'field' }, [el('label', { text: label }), control]); }
 function derivedStat(label, value) { return el('div', { class: 'derived-stat' }, [el('span', { text: label }), el('strong', { text: String(value) })]); }
+function weaponSummary(item, character) {
+  const derived = calculateDerived(character);
+  const ability = item.weaponAbility || 'strength';
+  const abilityMod = derived.modifiers[ability] || 0;
+  const attack = abilityMod + (Number(item.attackBonus) || 0) + derived.proficiency;
+  const damageBonus = abilityMod + (Number(item.damageBonus) || 0);
+  return `TxC ${signed(attack)} · ${item.damage || 'danno'} ${signed(damageBonus)}${item.damageType ? ` ${item.damageType}` : ''}`;
+}
+
 function signed(value) { return Number(value) >= 0 ? `+${value}` : String(value); }

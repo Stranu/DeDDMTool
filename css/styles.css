@@ -325,3 +325,13 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .skill-row .skill-label { flex: 1; min-width: 0; }
 .spell-player-markers { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; }
 .spell-player-marker { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255,255,255,.65); box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+
+.player-hero { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border); border-left: 5px solid var(--player-color, var(--accent)); border-radius: 12px; background: var(--bg); }
+.player-hero h2 { margin: 0; font-size: 20px; }
+.player-color-dot.large { width: 24px; height: 24px; flex-basis: 24px; }
+.spell-level-group { margin-top: 14px; }
+.spell-level-heading { padding: 7px 0; border-bottom: 1px solid var(--border); }
+.spell-level-heading .badge { text-align: center; }
+.slot-input { width: 58px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.spellbook-row { min-height: 44px; }
+.inventory-category { margin-top: 16px; }

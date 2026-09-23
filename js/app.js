@@ -6,7 +6,7 @@ import { renderConditions } from './views/conditions.js';
 import { renderSpells } from './views/spells.js';
 import { renderSettings } from './views/settings.js';
 import { renderMonsters } from './views/monsters.js';
-import { renderPlayer, normalizePlayerState } from './views/player.js';
+import { renderPlayer, renderInventory, normalizePlayerState } from './views/player.js';
 
 // ---------------- Stato condiviso ----------------
 // encounter: stato del gestore iniziativa (persistito su ogni evento).
@@ -30,6 +30,7 @@ const views = {
   spells: { el: $('#view-spells'), render: renderSpells },
   monsters: { el: $('#view-monsters'), render: renderMonsters },
   player: { el: $('#view-player'), render: renderPlayer },
+  inventory: { el: $('#view-inventory'), render: renderInventory },
   settings: { el: $('#view-settings'), render: renderSettings }
 };
 
@@ -95,27 +96,41 @@ function updateTabs() {
   $('#tab-monsters').hidden = playerMode;
   // Se la vista corrente non appartiene alla modalità attiva, torna alla vista principale.
   if (playerMode && ['initiative', 'conditions', 'monsters'].includes(current)) goTo('player');
-  if (!playerMode && current === 'player') goTo('initiative');
+  if (!playerMode && ['player', 'inventory'].includes(current)) goTo('initiative');
   if (!playerMode && current === 'conditions' && !state.hasConditions) goTo('initiative');
 }
 
 // ---------------- Drawer ----------------
-function openDrawer(title, contentNode) {
-  const drawer = $('#drawer');
-  const backdrop = $('#drawer-backdrop');
+let drawerHistory = [];
+
+function renderDrawer(title, contentNode) {
   $('#drawer-title').textContent = title;
   const body = $('#drawer-body');
   body.innerHTML = '';
   if (contentNode) body.appendChild(contentNode);
-  backdrop.hidden = false;
-  drawer.hidden = false;
-  drawer.setAttribute('aria-hidden', 'false');
+  $('#drawer-back').hidden = drawerHistory.length === 0;
+  $('#drawer').hidden = false;
+  $('#drawer-backdrop').hidden = false;
+  $('#drawer').setAttribute('aria-hidden', 'false');
+}
+
+function openDrawer(title, contentNode, options = {}) {
+  const body = $('#drawer-body');
+  if (!options.replace && !$('#drawer').hidden && body.firstElementChild) {
+    drawerHistory.push({ title: $('#drawer-title').textContent, contentNode: body.firstElementChild });
+  }
+  renderDrawer(title, contentNode);
+}
+function drawerBack() {
+  const previous = drawerHistory.pop();
+  if (previous) renderDrawer(previous.title, previous.contentNode);
 }
 function closeDrawer() {
-  const drawer = $('#drawer');
-  drawer.setAttribute('aria-hidden', 'true');
-  drawer.hidden = true;
+  drawerHistory = [];
+  $('#drawer').setAttribute('aria-hidden', 'true');
+  $('#drawer').hidden = true;
   $('#drawer-backdrop').hidden = true;
+  $('#drawer-back').hidden = true;
 }
 
 function setMode(mode) {
@@ -190,6 +205,7 @@ async function boot() {
   $('#settings-btn').addEventListener('click', () => goTo('settings'));
   $('#menu-toggle').addEventListener('click', openModeMenu);
   $('#drawer-close').addEventListener('click', closeDrawer);
+  $('#drawer-back').addEventListener('click', drawerBack);
   $('#drawer-backdrop').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
