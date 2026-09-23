@@ -161,6 +161,17 @@ function parseClasses(raw) {
     .filter(Boolean);
 }
 
+export function buildSpellSearch(spell) {
+  return fold([
+    spell.name,
+    spell.original,
+    spell.description,
+    spell.school,
+    spell.manual,
+    (spell.classes || []).join(' ')
+  ].join(' '));
+}
+
 export function parseSpells(text) {
   const objs = toObjects(parseCSV(text));
   const out = [];
@@ -194,7 +205,10 @@ export function parseSpells(text) {
       descriptionRaw,
       description,
       classes,
-      search: fold([name, original, description, school, classes.join(' ')].join(' '))
+      manual: (o['Manuale'] || o['Manual'] || '').trim() || 'Manuale base',
+      createdManually: false,
+      favorite: false,
+      search: buildSpellSearch({ name, original, description, school, classes, manual: (o['Manuale'] || o['Manual'] || '').trim() || 'Manuale base' })
     });
   }
   out.sort((a, b) => a.name.localeCompare(b.name, 'it'));

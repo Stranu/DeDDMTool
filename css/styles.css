@@ -277,3 +277,14 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .list-linkitem:disabled { opacity: .7; cursor: default; }
 
 .combatant:focus { outline: 2px solid var(--active-glow); outline-offset: 2px; }
+
+.manual-spell-marker { color: var(--accent-2); font-size: 14px; font-weight: 700; cursor: help; }
+
+.favorite-toggle {
+  appearance: none; border: 0; background: transparent; color: var(--text-dim);
+  min-width: 40px; min-height: 40px; padding: 4px; border-radius: 999px;
+  display: inline-grid; place-items: center; font-size: 25px; line-height: 1;
+  cursor: pointer;
+}
+.favorite-toggle:hover, .favorite-toggle:focus-visible { color: var(--accent-2); background: rgba(201,162,75,.12); }
+.favorite-toggle.on { color: var(--accent-2); }

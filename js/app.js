@@ -81,12 +81,12 @@ function goTo(view) {
 
 function updateTabs() {
   $('#tab-conditions').hidden = !state.hasConditions;
-  $('#tab-spells').hidden = !state.hasSpells;
+  // Magie resta sempre accessibile anche senza dataset importato, per permettere la creazione manuale.
+  $('#tab-spells').hidden = false;
   // Mostri/PNG resta sempre accessibile anche quando l'archivio è vuoto.
   $('#tab-monsters').hidden = false;
   // Se ero su una tab ora nascosta, torna all'iniziativa.
-  if ((current === 'conditions' && !state.hasConditions) ||
-      (current === 'spells' && !state.hasSpells)) {
+  if (current === 'conditions' && !state.hasConditions) {
     goTo('initiative');
   }
 }

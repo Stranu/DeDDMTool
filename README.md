@@ -25,7 +25,7 @@ Il `manifest.webmanifest` e il service worker usano percorsi relativi, quindi fu
 
 Quando modifichi HTML, CSS o JavaScript:
 
-1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v7` a `dm-toolkit-v8`.
+1. Incrementa la costante `CACHE` in `sw.js`, per esempio da `dm-toolkit-v9` a `dm-toolkit-v10`.
 2. Esegui commit e push dei file modificati.
 3. Attendi la pubblicazione di GitHub Pages.
 
@@ -73,3 +73,7 @@ La lista può essere ordinata per nome oppure per livello crescente, oltre ai fi
 ## Normalizzazione delle descrizioni
 
 Durante l’importazione CSV, le descrizioni vengono ripulite dai ritorni a capo tipografici e dagli spazi superflui. I bullet delle descrizioni vengono mantenuti come righe separate e il paragrafo “Ai Livelli Più Alti.” viene preservato. Il testo originale resta disponibile nel campo interno `descriptionRaw`; per applicare la normalizzazione ai dati già importati è sufficiente reimportare il CSV.
+
+Le magie possono anche essere create o modificate manualmente dalla sezione **Magie**. Le nuove magie sono marcate con un simbolo, filtrabili con **Create a mano** e usano `Manuale base` quando il campo Manuale viene lasciato vuoto. Per una magia manuale sono obbligatori nome, tempo di lancio, almeno una classe, livello e descrizione.
+
+Le magie possono essere contrassegnate come preferite tramite la stellina accanto al nome. Il filtro **Preferite** mostra solo le magie selezionate; lo stato viene salvato in IndexedDB e incluso nei backup JSON.
