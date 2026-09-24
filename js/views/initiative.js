@@ -18,7 +18,7 @@ export function renderInitiative(root, api) {
   const nextBtn = el('button', { class: 'btn primary grow', title: 'Prossimo turno', html: ICON.play + '<span>Prossimo turno</span>' });
   const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi Mostri/PNG temporaneo o da archivio', html: '<span>+ Mostri</span>' });
   const rosterBtn = el('button', { class: 'btn accent', title: 'Gestisci PG e alleati ricorrenti', html: '<span>+ PG/Alleati</span>' });
-  const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera i tiri di iniziativa', html: ICON.reset + '<span>Reset</span>' });
+  const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera le iniziative totali', html: ICON.reset + '<span>Reset</span>' });
   toolbar.append(nextBtn, addBtn, rosterBtn, resetBtn);
   root.appendChild(toolbar);
 
@@ -54,13 +54,13 @@ export function renderInitiative(root, api) {
       'aria-current': active ? 'true' : false
     });
 
-    const initRoll = el('input', {
-      class: 'c-init-input', type: 'number', inputmode: 'numeric', min: '1', max: '20',
-      placeholder: 'd20', value: c.initiativeRoll == null ? '' : c.initiativeRoll,
-      'aria-label': `Tiro d20 di iniziativa di ${c.name}`
+    const init = el('input', {
+      class: 'c-init-input', type: 'number', inputmode: 'numeric', min: '-99', max: '99',
+      placeholder: '—', value: c.initiative == null ? '' : c.initiative,
+      'aria-label': `Iniziativa totale di ${c.name}`
     });
-    initRoll.addEventListener('change', () => {
-      c.initiativeRoll = initiativeRollValue(initRoll.value);
+    init.addEventListener('change', () => {
+      c.initiative = nullableNumber(init.value);
       sortCombatants(state.encounter);
       api.save();
       renderInitiative(root, api);
@@ -130,7 +130,7 @@ export function renderInitiative(root, api) {
       renderInitiative(root, api);
     });
     actions.append(deadBtn, deleteBtn);
-    card.append(initRoll, main, actions);
+    card.append(init, main, actions);
     return card;
   }
 
@@ -144,10 +144,10 @@ export function renderInitiative(root, api) {
 
   function resetEncounter() {
     if (!state.encounter.combatants.length) return;
-    if (!confirm('Azzerare i tiri d20 e il round mantenendo tutti i partecipanti?')) return;
+    if (!confirm('Azzerare le iniziative totali e il round mantenendo tutti i partecipanti?')) return;
     state.encounter.round = 1;
     state.encounter.activeId = null;
-    for (const c of state.encounter.combatants) c.initiativeRoll = null;
+    for (const c of state.encounter.combatants) c.initiative = null;
     api.save();
     renderInitiative(root, api);
   }
@@ -190,8 +190,8 @@ function focusActiveCombatant(root, combatantId) {
 // ---------- Drawer reset ----------
 function openResetMenu(api, resetEncounter, resetComplete) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Scegli se azzerare solo i tiri d20 o rimuovere tutti i partecipanti dall’iniziativa.' }));
-  const keep = el('button', { class: 'btn primary block', type: 'button', html: '<span>Reset tiri d20 · mantieni partecipanti</span>' });
+  body.appendChild(el('p', { class: 'muted', text: 'Scegli se azzerare le iniziative totali o rimuovere tutti i partecipanti dall’iniziativa.' }));
+  const keep = el('button', { class: 'btn primary block', type: 'button', html: '<span>Reset iniziative · mantieni partecipanti</span>' });
   keep.addEventListener('click', () => { resetEncounter(); api.closeDrawer(); });
   const clear = el('button', { class: 'btn danger block', type: 'button', style: 'margin-top:10px', html: '<span>Reset completo · svuota iniziativa</span>' });
   clear.addEventListener('click', () => { resetComplete(); api.closeDrawer(); });
@@ -216,10 +216,9 @@ function openCombatantDrawer(c, api, options = {}) {
   ]));
 
   const stats = el('div', { class: 'stat-grid' });
-  const initiativeFields = [
-    statField('Bonus iniziativa', c.initiativeBonus ?? c.initiative, (v) => { c.initiativeBonus = nullableNumber(v); saveAndRefresh(); })
-  ];
-  if (!options.shared) initiativeFields.push(statField('Tiro d20', c.initiativeRoll, (v) => { c.initiativeRoll = initiativeRollValue(v); saveAndRefresh(); }));
+  const initiativeFields = options.shared
+    ? [statField('Bonus iniziativa', c.initiativeBonus ?? c.initiative, (v) => { c.initiativeBonus = nullableNumber(v); saveAndRefresh(); })]
+    : [statField('Iniziativa totale', c.initiative, (v) => { c.initiative = nullableNumber(v); saveAndRefresh(); })];
   stats.append(
     statField('CA', c.ac, (v) => { c.ac = v; saveAndRefresh(); }),
     statField('PF attuali', c.hpCurrent, (v) => { c.hpCurrent = v; saveAndRefresh(); }),
@@ -228,6 +227,7 @@ function openCombatantDrawer(c, api, options = {}) {
     ...initiativeFields
   );
   body.appendChild(stats);
+  if (!options.shared) body.appendChild(readOnlyField('Bonus iniziativa scheda', formatBonus(c.initiativeBonus)));
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
     el('label', { text: 'Note / attacchi / capacità' }),
     textareaField(c.notes, (value) => { c.notes = value; saveAndRefresh(); }, 'es. Multiattacco, morso +5, danni 1d6+3')
@@ -669,23 +669,14 @@ function signedNumber(value) {
   return Number(value) >= 0 ? `+${Number(value)}` : String(Number(value));
 }
 
-function initiativeRollValue(value) {
-  if (value === '' || value == null) return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.max(1, Math.min(20, number)) : null;
-}
-
-function initiativeTotal(combatant) {
-  if (combatant.initiativeRoll == null || combatant.initiativeRoll === '') return null;
-  return Number(combatant.initiativeRoll) + (Number(combatant.initiativeBonus) || 0);
-}
-
 function initiativeSummary(combatant) {
+  const total = formatInitiative(combatant.initiative);
   const bonus = formatBonus(combatant.initiativeBonus);
-  const total = initiativeTotal(combatant);
-  return total == null
-    ? `Bonus ${bonus} · Tiro —`
-    : `Iniziativa ${total} (${combatant.initiativeRoll} ${bonus})`;
+  return `Iniziativa ${total} · Bonus ${bonus}`;
+}
+
+function formatInitiative(value) {
+  return value === '' || value == null || !Number.isFinite(Number(value)) ? '—' : String(Number(value));
 }
 
 function sourceName(name, initiativeBonus, title) {
@@ -700,7 +691,7 @@ function playerCharacterToCombatant(character) {
   const combatant = makeCombatant(character.name, 'pc');
   combatant.playerId = character.id;
   combatant.initiativeBonus = derived.initiativeBonus;
-  combatant.initiativeRoll = null;
+  combatant.initiative = null;
   combatant.ac = derived.armorClass;
   combatant.hpCurrent = character.hpCurrent;
   combatant.hpMax = character.hpMax;
@@ -722,7 +713,7 @@ function addPlayerCharacterToEncounter(api, character) {
 export function makeCombatant(name, kind = 'monster') {
   return {
     id: uid(), name, kind,
-    initiativeBonus: null, initiativeRoll: null, ac: '', hpCurrent: '', hpMax: '', tempHp: 0, save: '', notes: '', creatureType: '', cr: '', dead: false,
+    initiativeBonus: null, initiative: null, ac: '', hpCurrent: '', hpMax: '', tempHp: 0, save: '', notes: '', creatureType: '', cr: '', dead: false,
     conditions: [], conditionNames: {}, affectedSpells: [], knownSpells: []
   };
 }
@@ -730,7 +721,7 @@ export function makeCombatant(name, kind = 'monster') {
 export function cloneCombatant(source) {
   const copy = makeCombatant(source.name, source.kind);
   copy.initiativeBonus = source.initiativeBonus ?? source.initiative ?? null;
-  copy.initiativeRoll = null;
+  copy.initiative = null;
   for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? '';
   copy.conditions = [...(source.conditions || [])];
   copy.conditionNames = { ...(source.conditionNames || {}) };
@@ -859,8 +850,13 @@ function normalizeCombatant(c, isEncounter = false) {
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
   if (c.initiativeBonus === undefined) c.initiativeBonus = c.initiative === undefined ? null : nullableNumber(c.initiative);
   else c.initiativeBonus = nullableNumber(c.initiativeBonus);
-  c.initiativeRoll = isEncounter ? initiativeRollValue(c.initiativeRoll) : null;
-  delete c.initiative;
+  if (isEncounter) {
+    if (c.initiative === undefined) {
+      const legacyRoll = nullableNumber(c.initiativeRoll);
+      c.initiative = legacyRoll == null ? null : legacyRoll + (Number(c.initiativeBonus) || 0);
+    } else c.initiative = nullableNumber(c.initiative);
+  } else c.initiative = null;
+  delete c.initiativeRoll;
   if (c.tempHp === undefined) c.tempHp = 0;
   if (c.notes === undefined) c.notes = '';
   if (c.creatureType === undefined) c.creatureType = '';
@@ -898,8 +894,8 @@ function normalizeSpellLinks(links) {
 function sortCombatants(encounter) {
   const before = encounter.combatants.map((c) => c.id);
   encounter.combatants.sort((a, b) => {
-    const ai = initiativeTotal(a);
-    const bi = initiativeTotal(b);
+    const ai = nullableNumber(a.initiative);
+    const bi = nullableNumber(b.initiative);
     if (ai == null && bi == null) return (Number(b.initiativeBonus) || 0) - (Number(a.initiativeBonus) || 0);
     if (ai == null) return 1;
     if (bi == null) return -1;
