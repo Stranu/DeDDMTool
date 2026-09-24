@@ -21,6 +21,14 @@ const PLAYER_COLORS = ['#8a5cf6', '#e05669', '#4bbf7b', '#c9a24b', '#4ca6d8', '#
 const ITEM_CATEGORIES = [
   ['item', 'Oggetto'], ['weapon', 'Arma'], ['armor', 'Armatura/scudo'], ['magic', 'Oggetto magico']
 ];
+const ITEM_PRESETS = [
+  ['lightArmor', 'Armatura leggera', { category: 'armor', armorCategory: 'light', armorBase: 11, maxDexBonus: '' }],
+  ['mediumArmor', 'Armatura media', { category: 'armor', armorCategory: 'medium', armorBase: 14, maxDexBonus: 2 }],
+  ['heavyArmor', 'Armatura pesante', { category: 'armor', armorCategory: 'heavy', armorBase: 16, maxDexBonus: 0 }],
+  ['shield', 'Scudo', { category: 'armor', armorCategory: 'shield', shieldBonus: 2 }],
+  ['weapon', 'Arma semplice', { category: 'weapon', damage: '1d8', damageType: 'tagliente', weaponAbility: 'strength' }],
+  ['potion', 'Pozione', { category: 'magic', description: 'Effetto della pozione…' }]
+];
 
 function randomPlayerColor() {
   return PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
@@ -97,8 +105,9 @@ function normalizeCharacter(character) {
   character.inventory = Array.isArray(character.inventory) ? character.inventory : [];
   character.inventory.forEach(normalizeItem);
   character.attunement = character.attunement && typeof character.attunement === 'object' ? character.attunement : { max: 3, itemIds: [] };
-  character.attunement.max = Number(character.attunement.max) || 3;
-  character.attunement.itemIds = Array.isArray(character.attunement.itemIds) ? character.attunement.itemIds : [];
+  const attunementMax = Number(character.attunement.max);
+  character.attunement.max = Number.isFinite(attunementMax) ? Math.max(0, Math.floor(attunementMax)) : 3;
+  syncAttunement(character);
   character.spellbook = character.spellbook && typeof character.spellbook === 'object' ? character.spellbook : {};
   character.spellbook.castingAbility = isAbilityKey(character.spellbook.castingAbility) ? character.spellbook.castingAbility : '';
   character.spellbook.knownSpellIds = Array.isArray(character.spellbook.knownSpellIds) ? character.spellbook.knownSpellIds : [];
@@ -125,22 +134,84 @@ function createItem() {
   };
 }
 
+function optionalNumber(value) {
+  if (value === '' || value == null) return '';
+  const number = Number(value);
+  return Number.isFinite(number) ? number : '';
+}
+
+function numericValue(input, fallback = 0) {
+  const number = Number(input.value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function normalizeItem(item) {
   const defaults = createItem();
   for (const key of Object.keys(defaults)) if (item[key] === undefined) item[key] = defaults[key];
   if (!item.id) item.id = uid();
-  item.quantity = Math.max(1, Number(item.quantity) || 1);
+  item.category = ITEM_CATEGORIES.some(([value]) => value === item.category) ? item.category : 'item';
+  item.quantity = Math.max(1, Math.floor(Number(item.quantity) || 1));
+  item.equipped = Boolean(item.equipped);
+  item.requiresAttunement = Boolean(item.requiresAttunement);
+  item.attuned = item.requiresAttunement && Boolean(item.attuned);
+  item.finesse = Boolean(item.finesse);
+  item.weaponAbility = isAbilityKey(item.weaponAbility) ? item.weaponAbility : 'strength';
+  item.armorCategory = ['light', 'medium', 'heavy', 'shield'].includes(item.armorCategory) ? item.armorCategory : 'light';
+  item.savingThrowBonus = optionalNumber(item.savingThrowBonus) || 0;
+  item.skillBonus = optionalNumber(item.skillBonus) || 0;
+  item.damageBonus = optionalNumber(item.damageBonus) || 0;
+  item.attackBonus = optionalNumber(item.attackBonus);
+  item.armorBase = optionalNumber(item.armorBase);
+  item.maxDexBonus = optionalNumber(item.maxDexBonus);
+  item.shieldBonus = optionalNumber(item.shieldBonus);
   return item;
+}
+
+function itemCategoryLabel(category) {
+  return ITEM_CATEGORIES.find(([value]) => value === category)?.[1] || 'Oggetto';
+}
+
+function armorItemSummary(item) {
+  if (item.category !== 'armor') return '';
+  if (item.armorCategory === 'shield') return item.shieldBonus !== '' ? `Scudo ${signed(item.shieldBonus)}` : '';
+  return item.armorBase !== '' ? `CA base ${item.armorBase}` : '';
+}
+
+function itemInlineSummary(item, character) {
+  const values = [];
+  const armor = armorItemSummary(item);
+  if (armor) values.push(armor);
+  if (item.savingThrowBonus) values.push(`TS ${signed(item.savingThrowBonus)}`);
+  if (item.skillBonus) values.push(`Abilità ${signed(item.skillBonus)}`);
+  if (item.category === 'weapon') values.push(weaponSummary(item, character));
+  if (!values.length && item.quantity > 1) values.push(`Quantità ${item.quantity}`);
+  return values.join(' · ') || itemCategoryLabel(item.category);
+}
+
+function itemEffectsActive(item) {
+  return item.equipped && (!item.requiresAttunement || item.attuned);
+}
+
+function equipmentWarning(character) {
+  const armorCount = character.inventory.filter((item) => itemEffectsActive(item) && item.category === 'armor' && item.armorCategory !== 'shield').length;
+  const shieldCount = character.inventory.filter((item) => itemEffectsActive(item) && item.category === 'armor' && item.armorCategory === 'shield').length;
+  if (armorCount > 1 || shieldCount > 1) {
+    const parts = [];
+    if (armorCount > 1) parts.push(`${armorCount} armature`);
+    if (shieldCount > 1) parts.push(`${shieldCount} scudi`);
+    return el('div', { class: 'equipment-warning', role: 'status', text: `Attenzione: ${parts.join(' e ')} attivi. La CA usa il primo elemento di ogni tipo.` });
+  }
+  return null;
 }
 
 export function calculateDerived(character) {
   const mod = (key) => Math.floor((Number(character.stats[key]) - 10) / 2);
   const proficiency = 2 + Math.floor((Math.max(1, Number(character.level) || 1) - 1) / 4);
-  const equippedItems = character.inventory.filter((item) => item.equipped);
+  const equippedItems = character.inventory.filter(itemEffectsActive);
   const savingThrowBonus = (Number(character.bonuses.savingThrows) || 0) + equippedItems.reduce((sum, item) => sum + (Number(item.savingThrowBonus) || 0), 0);
   const skillBonus = (Number(character.bonuses.skills) || 0) + equippedItems.reduce((sum, item) => sum + (Number(item.skillBonus) || 0), 0);
-  const armor = character.inventory.find((item) => item.equipped && item.category === 'armor' && item.armorCategory !== 'shield');
-  const shield = character.inventory.find((item) => item.equipped && item.category === 'armor' && item.armorCategory === 'shield');
+  const armor = character.inventory.find((item) => itemEffectsActive(item) && item.category === 'armor' && item.armorCategory !== 'shield');
+  const shield = character.inventory.find((item) => itemEffectsActive(item) && item.category === 'armor' && item.armorCategory === 'shield');
   const dexterity = mod('dexterity');
   const dexterityPart = armor?.armorCategory === 'heavy'
     ? 0
@@ -232,9 +303,39 @@ export function renderInventory(root, api) {
   select.value = api.state.player.activeId && characters.some((character) => character.id === api.state.player.activeId)
     ? api.state.player.activeId : characters[0].id;
   api.state.player.activeId = select.value;
-  const toolbar = el('div', { class: 'row', style: 'margin-bottom:12px' }, [el('div', { class: 'grow' }, [select])]);
-  root.appendChild(toolbar);
+  const search = el('input', { class: 'input', type: 'search', placeholder: 'Cerca oggetto…', 'aria-label': 'Cerca oggetto' });
+  const categoryFilter = el('select', { class: 'input', 'aria-label': 'Filtra per categoria' }, [el('option', { value: '', text: 'Tutte le categorie' })]);
+  for (const [value, label] of ITEM_CATEGORIES) categoryFilter.appendChild(el('option', { value, text: label }));
+  const statusFilter = el('select', { class: 'input', 'aria-label': 'Filtra per stato' }, [
+    el('option', { value: '', text: 'Tutti gli stati' }),
+    el('option', { value: 'equipped', text: 'Equipaggiati' }),
+    el('option', { value: 'carried', text: 'Non equipaggiati' }),
+    el('option', { value: 'attuned', text: 'Sintonizzati' }),
+    el('option', { value: 'requiresAttunement', text: 'Richiedono sintonia' })
+  ]);
+  const sort = el('select', { class: 'input', 'aria-label': 'Ordina inventario' }, [
+    el('option', { value: 'name', text: 'Nome A-Z' }),
+    el('option', { value: 'category', text: 'Categoria' }),
+    el('option', { value: 'weight', text: 'Peso' })
+  ]);
+  root.appendChild(el('div', { class: 'inventory-toolbar' }, [el('div', { class: 'grow' }, [select]), search, categoryFilter, statusFilter, sort]));
   const content = el('div', {}); root.appendChild(content);
+
+  const matchesFilters = (item) => {
+    const query = search.value.trim().toLocaleLowerCase('it');
+    if (query && ![item.name, item.description, itemCategoryLabel(item.category)].join(' ').toLocaleLowerCase('it').includes(query)) return false;
+    if (categoryFilter.value && item.category !== categoryFilter.value) return false;
+    if (statusFilter.value === 'equipped' && !item.equipped) return false;
+    if (statusFilter.value === 'carried' && item.equipped) return false;
+    if (statusFilter.value === 'attuned' && !item.attuned) return false;
+    if (statusFilter.value === 'requiresAttunement' && !item.requiresAttunement) return false;
+    return true;
+  };
+  const sortItems = (items) => items.sort((a, b) => {
+    if (sort.value === 'category') return itemCategoryLabel(a.category).localeCompare(itemCategoryLabel(b.category), 'it') || a.name.localeCompare(b.name, 'it');
+    if (sort.value === 'weight') return String(a.weight || '').localeCompare(String(b.weight || ''), 'it') || a.name.localeCompare(b.name, 'it');
+    return a.name.localeCompare(b.name, 'it');
+  });
   const draw = () => {
     const character = characters.find((item) => item.id === select.value) || characters[0];
     api.state.player.activeId = character.id;
@@ -243,28 +344,60 @@ export function renderInventory(root, api) {
       el('span', { class: 'player-color-dot large' }),
       el('div', { class: 'grow' }, [el('h2', { text: character.name }), el('div', { class: 'muted', text: 'Inventario ed equipaggiamento' })])
     ]));
+    const warning = equipmentWarning(character);
+    if (warning) content.appendChild(warning);
+    const visible = character.inventory.filter(matchesFilters);
+    content.appendChild(el('div', { class: 'result-count', text: `${visible.length} oggett${visible.length === 1 ? 'o' : 'i'}` }));
     for (const [category, label] of ITEM_CATEGORIES) {
-      const items = character.inventory.filter((item) => item.category === category);
+      const items = sortItems(visible.filter((item) => item.category === category));
+      if (!items.length && (search.value || categoryFilter.value || statusFilter.value)) continue;
       const section = el('section', { class: 'inventory-category' });
       section.appendChild(el('div', { class: 'mini-title', text: `${label} (${items.length})` }));
       if (!items.length) section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessun oggetto.' }));
       for (const item of items) {
         const row = el('div', { class: `inventory-row${item.equipped ? ' equipped' : ''}` });
-        const open = el('button', { class: 'inventory-name', type: 'button' }, [el('strong', { text: item.name }), el('span', { class: 'muted', text: item.category === 'weapon' ? weaponSummary(item, character) : `Quantità: ${item.quantity}` })]);
-        open.addEventListener('click', () => openItemEditor(character, item, api, root, false, 'inventory'));
+        const open = el('button', { class: 'inventory-name', type: 'button' }, [
+          el('strong', { text: item.name || 'Oggetto senza nome' }),
+          el('span', { class: 'muted', text: itemInlineSummary(item, character) })
+        ]);
+        open.addEventListener('click', () => openItemDetails(character, item, api, root, 'inventory'));
+        row.appendChild(open);
+        const quantity = el('div', { class: 'quantity-controls', title: 'Quantità' });
+        const minusQuantity = el('button', { class: 'quantity-adjust', type: 'button', text: '−', 'aria-label': `Riduci quantità di ${item.name}` });
+        const quantityValue = el('strong', { text: `x${item.quantity}` });
+        const plusQuantity = el('button', { class: 'quantity-adjust', type: 'button', text: '+', 'aria-label': `Aumenta quantità di ${item.name}` });
+        minusQuantity.disabled = item.quantity <= 1;
+        minusQuantity.addEventListener('click', () => { item.quantity = Math.max(1, item.quantity - 1); api.save(); draw(); });
+        plusQuantity.addEventListener('click', () => { item.quantity += 1; api.save(); draw(); });
+        quantity.append(minusQuantity, quantityValue, plusQuantity);
+        row.appendChild(quantity);
         const equip = el('button', { class: `chip${item.equipped ? ' on' : ''}`, type: 'button', text: item.equipped ? 'Equipaggiato' : 'Equipaggia' });
         equip.addEventListener('click', () => { item.equipped = !item.equipped; api.save(); draw(); });
-        row.append(open, equip);
+        row.appendChild(equip);
+        if (item.requiresAttunement) {
+          const attune = el('label', { class: 'checkline compact-check' });
+          const attuneCheck = el('input', { type: 'checkbox' }); attuneCheck.checked = item.attuned;
+          attuneCheck.addEventListener('change', () => toggleAttunement(character, item, attuneCheck, api, draw));
+          attune.append(attuneCheck, document.createTextNode('Sint.')); row.appendChild(attune);
+        }
+        const duplicate = el('button', { class: 'chip ghost', type: 'button', text: 'Duplica' });
+        duplicate.addEventListener('click', () => { duplicateItem(character, item); api.save(); draw(); });
+        row.appendChild(duplicate);
         if (item.requiresAttunement) row.appendChild(el('span', { class: `badge${item.attuned ? ' cond' : ''}`, text: item.attuned ? 'Sintonizzato' : 'Richiede sintonia' }));
         section.appendChild(row);
       }
       content.appendChild(section);
     }
+    if (!visible.length) content.appendChild(el('div', { class: 'empty', text: 'Nessun oggetto corrisponde ai filtri.' }));
     const add = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:18px', html: ICON.plus + '<span>Aggiungi oggetto</span>' });
     add.addEventListener('click', () => openItemEditor(character, createItem(), api, root, true, 'inventory'));
     content.appendChild(add);
   };
   select.addEventListener('change', () => { api.state.player.activeId = select.value; api.save(); draw(); });
+  search.addEventListener('input', draw);
+  categoryFilter.addEventListener('change', draw);
+  statusFilter.addEventListener('change', draw);
+  sort.addEventListener('change', draw);
   draw();
 }
 
@@ -403,6 +536,8 @@ function readOnlySection(title, text, multiline = false) {
 function equippedSection(character, api, root) {
   const section = el('section', { class: 'player-section' });
   section.appendChild(el('div', { class: 'mini-title', text: 'Equipaggiamento' }));
+  const warning = equipmentWarning(character);
+  if (warning) section.appendChild(warning);
   const equipped = character.inventory.filter((item) => item.equipped);
   if (!equipped.length) {
     section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessun oggetto equipaggiato.' }));
@@ -411,11 +546,130 @@ function equippedSection(character, api, root) {
   const list = el('div', {});
   for (const item of equipped) {
     const row = el('div', { class: 'inventory-row equipped' });
-    const text = item.category === 'weapon' ? weaponSummary(item, character) : `${item.name} · ${item.category}`;
-    row.appendChild(el('div', { class: 'inventory-name' }, [el('strong', { text: item.name }), el('span', { class: 'muted', text })]));
+    const open = el('button', { class: 'inventory-name', type: 'button' }, [
+      el('strong', { text: item.name || 'Oggetto senza nome' }),
+      el('span', { class: 'muted', text: itemInlineSummary(item, character) })
+    ]);
+    open.addEventListener('click', () => openItemDetails(character, item, api, root, 'player-sheet-view'));
+    row.appendChild(open);
+    if (item.requiresAttunement) row.appendChild(el('span', { class: `badge${item.attuned ? ' cond' : ''}`, text: item.attuned ? 'Sintonizzato' : 'Richiede sintonia' }));
     list.appendChild(row);
   }
   section.appendChild(list); return section;
+}
+
+function syncAttunement(character) {
+  const ids = [];
+  for (const item of character.inventory) {
+    if (!item.requiresAttunement || !item.attuned) continue;
+    if (ids.length >= character.attunement.max) {
+      item.attuned = false;
+      continue;
+    }
+    ids.push(item.id);
+  }
+  character.attunement.itemIds = ids;
+}
+
+function toggleAttunement(character, item, control, api, onDone) {
+  const next = control.checked;
+  if (next && character.inventory.filter((entry) => entry.attuned && entry.id !== item.id).length >= character.attunement.max) {
+    control.checked = item.attuned;
+    api.toast(`Sintonizzazione massima: ${character.attunement.max}`);
+    return;
+  }
+  item.attuned = next;
+  syncAttunement(character);
+  api.save();
+  if (onDone) onDone();
+}
+
+function duplicateItem(character, item) {
+  const copy = normalizeItem({ ...item, id: uid(), name: `${item.name || 'Oggetto'} (copia)`, equipped: false, attuned: false });
+  character.inventory.push(copy);
+  syncAttunement(character);
+  return copy;
+}
+
+function refreshItemView(returnView, character, api, root) {
+  if (returnView === 'player-sheet' || returnView === 'player-sheet-view') openCharacterView(character, api, root);
+  else api.refresh(returnView);
+}
+
+function detailValue(value, fallback = 'Non impostato') {
+  return value === '' || value == null ? fallback : String(value);
+}
+
+function itemDetailRow(label, value) {
+  return el('div', { class: 'item-detail-row' }, [el('span', { text: label }), el('strong', { text: detailValue(value) })]);
+}
+
+function itemDetailSection(title, rows) {
+  return el('section', { class: 'item-detail-section' }, [el('h3', { text: title }), el('div', { class: 'item-detail-grid' }, rows)]);
+}
+
+function itemDetails(item, character) {
+  const wrap = el('div', { class: 'item-details' });
+  wrap.appendChild(el('div', { class: 'item-detail-heading' }, [
+    el('strong', { text: item.name || 'Oggetto senza nome' }),
+    el('span', { class: 'badge', text: itemCategoryLabel(item.category) })
+  ]));
+  wrap.appendChild(itemDetailSection('Informazioni', [
+    itemDetailRow('Quantità', item.quantity), itemDetailRow('Peso', item.weight), itemDetailRow('Valore', item.value),
+    itemDetailRow('Equipaggiato', item.equipped ? 'Sì' : 'No'), itemDetailRow('Richiede sintonia', item.requiresAttunement ? 'Sì' : 'No'),
+    itemDetailRow('Sintonizzato', item.attuned ? 'Sì' : 'No')
+  ]));
+  wrap.appendChild(itemDetailSection('Bonus', [
+    itemDetailRow('Bonus a tutti i TS', item.savingThrowBonus ? signed(item.savingThrowBonus) : 'Nessuno'),
+    itemDetailRow('Bonus alle abilità', item.skillBonus ? signed(item.skillBonus) : 'Nessuno')
+  ]));
+  if (item.category === 'weapon') {
+    wrap.appendChild(itemDetailSection('Dati arma', [
+      itemDetailRow('Danno', item.damage), itemDetailRow('Tipo danno', item.damageType),
+      itemDetailRow('Bonus attacco', item.attackBonus === '' ? '' : signed(item.attackBonus)),
+      itemDetailRow('Bonus danni', item.damageBonus ? signed(item.damageBonus) : 'Nessuno'),
+      itemDetailRow('Caratteristica', abilityLabel(item.weaponAbility)), itemDetailRow('Accuratezza', item.finesse ? 'Sì' : 'No'),
+      itemDetailRow('Riepilogo', weaponSummary(item, character))
+    ]));
+  }
+  if (item.category === 'armor') {
+    wrap.appendChild(itemDetailSection('Dati armatura', [
+      itemDetailRow('Tipo', item.armorCategory === 'shield' ? 'Scudo' : capArmorCategory(item.armorCategory)),
+      itemDetailRow('CA base', item.armorCategory === 'shield' ? 'Non applicabile' : item.armorBase),
+      itemDetailRow('Massimo bonus DES', item.armorCategory === 'shield' ? 'Non applicabile' : item.maxDexBonus === '' ? 'Nessun limite' : item.maxDexBonus),
+      itemDetailRow('Bonus scudo', item.armorCategory === 'shield' ? item.shieldBonus : 'Non applicabile')
+    ]));
+  }
+  wrap.appendChild(itemDetailSection('Descrizione', [itemDetailRow('Testo', item.description)]));
+  return wrap;
+}
+
+function capArmorCategory(value) {
+  return ({ light: 'Leggera', medium: 'Media', heavy: 'Pesante', shield: 'Scudo' })[value] || 'Non impostato';
+}
+
+function openItemDetails(character, item, api, root, returnView = 'player-sheet-view') {
+  normalizeItem(item);
+  const body = el('div', {});
+  body.appendChild(itemDetails(item, character));
+  const actions = el('div', { class: 'row wrap item-detail-actions' });
+  const edit = el('button', { class: 'btn primary', type: 'button', html: ICON.edit + '<span>Modifica</span>' });
+  edit.addEventListener('click', () => { api.closeDrawer(); openItemEditor(character, item, api, root, false, returnView); });
+  const equip = el('button', { class: `btn ${item.equipped ? 'accent' : 'ghost'}`, type: 'button', text: item.equipped ? 'Disequipaggia' : 'Equipaggia' });
+  equip.addEventListener('click', () => { item.equipped = !item.equipped; api.save(); api.closeDrawer(); refreshItemView(returnView, character, api, root); });
+  const duplicate = el('button', { class: 'btn ghost', type: 'button', text: 'Duplica' });
+  duplicate.addEventListener('click', () => { duplicateItem(character, item); api.save(); api.closeDrawer(); refreshItemView(returnView, character, api, root); });
+  actions.append(edit, equip, duplicate);
+  if (item.requiresAttunement) {
+    const attune = el('button', { class: `btn ${item.attuned ? 'accent' : 'ghost'}`, type: 'button', text: item.attuned ? 'Desintonizza' : 'Sintonizza' });
+    attune.addEventListener('click', () => {
+      const control = { checked: !item.attuned };
+      toggleAttunement(character, item, control, api, () => { api.closeDrawer(); refreshItemView(returnView, character, api, root); });
+    });
+    actions.appendChild(attune);
+  }
+  body.appendChild(actions);
+  api.openDrawer(item.name || 'Dettagli oggetto', body);
 }
 
 function openCharacterEditor(character, api, root, isNew, options = {}) {
@@ -485,6 +739,15 @@ function openCharacterEditor(character, api, root, isNew, options = {}) {
     bonusGrid.appendChild(input.field);
   }
   body.appendChild(bonusGrid);
+  const attunementMax = numberInput('Slot sintonia massimi', character.attunement.max, 0);
+  attunementMax.input.addEventListener('input', () => {
+    character.attunement.max = Math.max(0, Math.floor(numericValue(attunementMax.input, 0)));
+    const wasOverLimit = character.attunement.itemIds.length > character.attunement.max;
+    syncAttunement(character);
+    if (wasOverLimit) api.toast('Il limite è inferiore: alcune sintonizzazioni sono state rimosse.');
+    save();
+  });
+  body.appendChild(attunementMax.field);
   const notes = textareaInput('Note personaggio', character.notes, 'Talenti, tratti, obiettivi…');
   notes.input.addEventListener('input', () => { character.notes = notes.input.value; save(); });
   body.appendChild(notes.field);
@@ -605,14 +868,7 @@ function inventorySection(character, api, root, returnView = 'player') {
       if (item.requiresAttunement) {
         const attune = el('label', { class: 'checkline compact-check' });
         const attuneCheck = el('input', { type: 'checkbox' }); attuneCheck.checked = Boolean(item.attuned);
-        attuneCheck.addEventListener('change', () => {
-          if (attuneCheck.checked && character.attunement.itemIds.filter((id) => id !== item.id).length >= character.attunement.max) {
-            attuneCheck.checked = false; api.toast(`Sintonizzazione massima: ${character.attunement.max}`); return;
-          }
-          item.attuned = attuneCheck.checked;
-          character.attunement.itemIds = character.inventory.filter((x) => x.attuned).map((x) => x.id);
-          api.save(); redraw();
-        });
+        attuneCheck.addEventListener('change', () => toggleAttunement(character, item, attuneCheck, api, redraw));
         attune.append(attuneCheck, document.createTextNode('Sint.')); row.appendChild(attune);
       }
       list.appendChild(row);
@@ -771,49 +1027,123 @@ export function openItemEditor(character, item, api, root, isNew, returnView = '
   normalizeItem(item);
   const body = el('div', {});
   const name = textInput('Nome oggetto *', item.name, 'es. Spada lunga +1');
+  const preset = el('select', { class: 'input', 'aria-label': 'Preset oggetto' }, [el('option', { value: '', text: 'Nessun preset' })]);
+  for (const [presetId, label] of ITEM_PRESETS) preset.appendChild(el('option', { value: presetId, text: label }));
   const category = el('select', { class: 'input' });
-  for (const [value, label] of ITEM_CATEGORIES) category.appendChild(el('option', { value, text: label })); category.value = item.category;
+  for (const [categoryValue, label] of ITEM_CATEGORIES) category.appendChild(el('option', { value: categoryValue, text: label }));
+  category.value = item.category;
   const quantity = numberInput('Quantità', item.quantity, 1);
   const weight = textInput('Peso', item.weight, 'es. 1,5 kg');
   const value = textInput('Valore', item.value, 'es. 50 mo');
   const description = textareaInput('Descrizione', item.description, 'Dettagli dell’oggetto…');
-  body.append(name.field, field('Categoria', category), quantity.field, weight.field, value.field, description.field);
   const equipped = checkboxField('Equipaggiato', item.equipped);
   const requires = checkboxField('Richiede sintonizzazione', item.requiresAttunement);
   const attuned = checkboxField('Sintonizzato', item.attuned);
-  const savingThrowBonus = numberInput('Bonus a tutti i TS', item.savingThrowBonus, 0);
-  body.append(equipped.field, requires.field, attuned.field, savingThrowBonus.field);
+  attuned.input.disabled = !requires.input.checked;
+  const savingThrowBonus = numberInput('Bonus a tutti i TS', item.savingThrowBonus, -20);
+  const skillBonus = numberInput('Bonus alle abilità', item.skillBonus, -20);
+
   const weapon = textInput('Danno arma', item.damage, 'es. 1d8');
   const damageType = textInput('Tipo danno', item.damageType, 'es. tagliente');
-  const attackBonus = textInput('Bonus attacco', item.attackBonus, 'es. +5');
-  const damageBonus = numberInput('Bonus danni', item.damageBonus, 0);
+  const attackBonus = numberInput('Bonus attacco', item.attackBonus, -20);
+  const damageBonus = numberInput('Bonus danni', item.damageBonus, -20);
   const weaponAbility = el('select', { class: 'input' });
   for (const [key, label] of ABILITIES) weaponAbility.appendChild(el('option', { value: key, text: label }));
   weaponAbility.value = item.weaponAbility || 'strength';
-  const finesse = checkboxField('Accuratezza', item.finesse);
+  const finesse = checkboxField('Accuratezza (usa FOR o DES migliore)', item.finesse);
+
   const armorCategory = el('select', { class: 'input' });
-  for (const [v, l] of [['light','Leggera'],['medium','Media'],['heavy','Pesante'],['shield','Scudo']]) armorCategory.appendChild(el('option', { value: v, text: l })); armorCategory.value = item.armorCategory;
-  const armorBase = numberInput('CA armatura', item.armorBase, 0);
-  const maxDex = numberInput('Massimo bonus DES', item.maxDexBonus === '' ? 99 : item.maxDexBonus, 0);
+  for (const [v, l] of [['light', 'Leggera'], ['medium', 'Media'], ['heavy', 'Pesante'], ['shield', 'Scudo']]) armorCategory.appendChild(el('option', { value: v, text: l }));
+  armorCategory.value = item.armorCategory;
+  const armorBase = numberInput('CA base armatura', item.armorBase, 0);
+  const maxDex = numberInput('Massimo bonus DES', item.maxDexBonus, 0);
   const shieldBonus = numberInput('Bonus scudo', item.shieldBonus, 0);
-  body.append(field('Dati arma', weapon.field), damageType.field, attackBonus.field, damageBonus.field, field('Statistica arma', weaponAbility), finesse.field, field('Categoria armatura', armorCategory), armorBase.field, maxDex.field, shieldBonus.field);
+
+  const weaponSection = el('section', { class: 'item-editor-section' }, [el('div', { class: 'mini-title', text: 'Dati arma' })]);
+  weaponSection.append(weapon.field, damageType.field, attackBonus.field, damageBonus.field, field('Statistica arma', weaponAbility), finesse.field);
+  const armorSection = el('section', { class: 'item-editor-section' }, [el('div', { class: 'mini-title', text: 'Dati armatura/scudo' })]);
+  armorSection.append(field('Categoria armatura', armorCategory), armorBase.field, maxDex.field, shieldBonus.field);
+
+  const readDraft = () => ({
+    ...item,
+    name: name.input.value.trim(), category: category.value, quantity: Math.max(1, Math.floor(numericValue(quantity.input, 1))),
+    weight: weight.input.value.trim(), value: value.input.value.trim(), description: description.input.value,
+    equipped: equipped.input.checked, requiresAttunement: requires.input.checked, attuned: requires.input.checked && attuned.input.checked,
+    savingThrowBonus: numericValue(savingThrowBonus), skillBonus: numericValue(skillBonus), damage: weapon.input.value.trim(),
+    damageType: damageType.input.value.trim(), attackBonus: optionalNumber(attackBonus.input.value), damageBonus: numericValue(damageBonus.input, 0),
+    weaponAbility: weaponAbility.value, finesse: finesse.input.checked, armorCategory: armorCategory.value,
+    armorBase: optionalNumber(armorBase.input.value), maxDexBonus: optionalNumber(maxDex.input.value), shieldBonus: optionalNumber(shieldBonus.input.value)
+  });
+  const preview = el('div', { class: 'card item-preview' });
+  const updatePreview = () => {
+    const draft = readDraft();
+    const previewInventory = character.inventory.filter((entry) => entry.id !== draft.id);
+    previewInventory.push(draft);
+    const previewCharacter = { ...character, inventory: previewInventory };
+    const derived = calculateDerived(previewCharacter);
+    preview.innerHTML = '';
+    preview.appendChild(el('div', { class: 'mini-title', text: 'Anteprima effetti' }));
+    if (!draft.equipped) {
+      preview.appendChild(el('div', { class: 'muted', text: 'Equipaggia l’oggetto per applicare i suoi bonus.' }));
+      return;
+    }
+    preview.appendChild(el('div', { class: 'derived-grid compact' }, [
+      derivedStat('CA totale', derived.armorClass), derivedStat('TS totali', derived.savingThrowBonus ? signed(derived.savingThrowBonus) : '—'),
+      derivedStat('Abilità', derived.skillBonus ? signed(derived.skillBonus) : '—')
+    ]));
+    if (draft.category === 'weapon') preview.appendChild(el('div', { class: 'muted item-preview-line', text: weaponSummary(draft, previewCharacter) }));
+  };
+  const updateCategoryFields = () => {
+    weaponSection.hidden = category.value !== 'weapon';
+    armorSection.hidden = category.value !== 'armor';
+    updatePreview();
+  };
+  category.addEventListener('change', updateCategoryFields);
+  requires.input.addEventListener('change', () => { attuned.input.disabled = !requires.input.checked; if (!requires.input.checked) attuned.input.checked = false; updatePreview(); });
+  const watchedControls = [name.input, quantity.input, weight.input, value.input, description.input, equipped.input, requires.input, attuned.input, savingThrowBonus.input, skillBonus.input, weapon.input, damageType.input, attackBonus.input, damageBonus.input, weaponAbility, finesse.input, armorCategory, armorBase.input, maxDex.input, shieldBonus.input];
+  watchedControls.forEach((control) => control.addEventListener(control.type === 'checkbox' || control.tagName === 'SELECT' ? 'change' : 'input', updatePreview));
+  preset.addEventListener('change', () => {
+    const selected = ITEM_PRESETS.find(([presetId]) => presetId === preset.value);
+    if (!selected) return;
+    const patch = selected[2];
+    if (patch.category) category.value = patch.category;
+    if (patch.armorCategory) armorCategory.value = patch.armorCategory;
+    if (patch.armorBase !== undefined) armorBase.input.value = patch.armorBase;
+    if (patch.maxDexBonus !== undefined) maxDex.input.value = patch.maxDexBonus;
+    if (patch.shieldBonus !== undefined) shieldBonus.input.value = patch.shieldBonus;
+    if (patch.damage !== undefined) weapon.input.value = patch.damage;
+    if (patch.damageType !== undefined) damageType.input.value = patch.damageType;
+    if (patch.weaponAbility !== undefined) weaponAbility.value = patch.weaponAbility;
+    if (patch.description !== undefined) description.input.value = patch.description;
+    updateCategoryFields();
+    preset.value = '';
+  });
+
+  body.append(
+    name.field, field('Preset rapido', preset), field('Categoria', category), quantity.field, weight.field, value.field,
+    description.field, equipped.field, requires.field, attuned.field, savingThrowBonus.field, skillBonus.field, weaponSection, armorSection, preview
+  );
+  updateCategoryFields();
+
   const finishItemEdit = () => {
     api.save();
     api.closeDrawer();
     if (returnView === 'player-sheet') openCharacterEditor(character, api, root, false, { inline: true });
+    else if (returnView === 'player-sheet-view') openCharacterView(character, api, root);
     else api.refresh(returnView);
   };
   const saveButton = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:12px', text: isNew ? 'Aggiungi oggetto' : 'Salva oggetto' });
   saveButton.addEventListener('click', () => {
-    if (!name.input.value.trim()) { api.toast('Il nome dell’oggetto è obbligatorio.'); return; }
-    item.name = name.input.value.trim(); item.category = category.value; item.quantity = Number(quantity.input.value) || 1;
-    item.weight = weight.input.value.trim(); item.value = value.input.value.trim(); item.description = description.input.value;
-    item.equipped = equipped.input.checked; item.requiresAttunement = requires.input.checked; item.attuned = item.requiresAttunement && attuned.input.checked; item.savingThrowBonus = Number(savingThrowBonus.input.value) || 0;
-    item.damage = weapon.input.value.trim(); item.damageType = damageType.input.value.trim(); item.attackBonus = attackBonus.input.value.trim(); item.damageBonus = Number(damageBonus.input.value) || 0; item.weaponAbility = weaponAbility.value; item.finesse = finesse.input.checked;
-    item.armorCategory = armorCategory.value; item.armorBase = Number(armorBase.input.value) || ''; item.maxDexBonus = Number(maxDex.input.value) || ''; item.shieldBonus = Number(shieldBonus.input.value) || '';
-    if (item.attuned && character.attunement.itemIds.filter((id) => id !== item.id).length >= character.attunement.max) { api.toast(`Sintonizzazione massima: ${character.attunement.max}`); return; }
+    const draft = readDraft();
+    if (!draft.name) { api.toast('Il nome dell’oggetto è obbligatorio.'); return; }
+    const otherAttuned = character.inventory.filter((entry) => entry.id !== item.id && entry.attuned).length;
+    if (draft.attuned && !item.attuned && otherAttuned >= character.attunement.max) {
+      api.toast(`Sintonizzazione massima: ${character.attunement.max}`);
+      return;
+    }
+    Object.assign(item, draft);
     if (isNew) character.inventory.push(item);
-    character.attunement.itemIds = character.inventory.filter((x) => x.attuned).map((x) => x.id);
+    syncAttunement(character);
     finishItemEdit();
   });
   body.appendChild(saveButton);
@@ -822,12 +1152,12 @@ export function openItemEditor(character, item, api, root, isNew, returnView = '
     remove.addEventListener('click', () => {
       if (!confirm(`Rimuovere "${item.name}" dall’inventario?`)) return;
       character.inventory = character.inventory.filter((entry) => entry.id !== item.id);
-      character.attunement.itemIds = character.inventory.filter((entry) => entry.attuned).map((entry) => entry.id);
+      syncAttunement(character);
       finishItemEdit();
     });
     body.appendChild(remove);
   }
-  api.openDrawer(isNew ? 'Nuovo oggetto' : `Oggetto: ${item.name}`, body);
+  api.openDrawer(isNew ? 'Nuovo oggetto' : `Modifica: ${item.name}`, body);
 }
 
 function textInput(label, value, placeholder) { const input = el('input', { class: 'input', type: 'text', placeholder }); input.value = value ?? ''; return { input, field: field(label, input) }; }
@@ -838,7 +1168,10 @@ function field(label, control) { return el('div', { class: 'field' }, [el('label
 function derivedStat(label, value) { return el('div', { class: 'derived-stat' }, [el('span', { text: label }), el('strong', { text: String(value) })]); }
 function weaponSummary(item, character) {
   const derived = calculateDerived(character);
-  const ability = item.weaponAbility || 'strength';
+  const selectedAbility = item.weaponAbility || 'strength';
+  const ability = item.finesse
+    ? (derived.modifiers.dexterity > derived.modifiers.strength ? 'dexterity' : 'strength')
+    : selectedAbility;
   const abilityMod = derived.modifiers[ability] || 0;
   const attack = abilityMod + (Number(item.attackBonus) || 0) + derived.proficiency;
   const damageBonus = abilityMod + (Number(item.damageBonus) || 0);

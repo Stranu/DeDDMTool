@@ -169,7 +169,7 @@ export function renderSettings(root, api) {
     if (categories.includes('spells')) {
       await db.bulkPut('spells', data.spells);
     }
-    if (categories.includes('encounter') || categories.includes('roster') || categories.includes('monsters')) {
+    if (categories.includes('encounter') || categories.includes('roster') || categories.includes('monsters') || categories.includes('player')) {
       if (!await save()) throw new Error('Salvataggio locale non riuscito.');
     }
     await reloadDatasets();

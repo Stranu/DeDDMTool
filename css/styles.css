@@ -307,6 +307,28 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .inventory-name { flex: 1; min-width: 0; appearance: none; border: 0; background: transparent; color: var(--text); text-align: left; padding: 2px 0; font: inherit; cursor: pointer; }
 .inventory-name span { display: block; font-size: 11px; color: var(--text-dim); }
 .compact-check { padding: 2px; font-size: 11px; white-space: nowrap; }
+.inventory-toolbar { display: grid; grid-template-columns: minmax(160px, 1.4fr) repeat(4, minmax(115px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.quantity-controls { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.quantity-controls strong { min-width: 24px; text-align: center; font-size: 12px; }
+.quantity-adjust { width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1; cursor: pointer; }
+.quantity-adjust:disabled { opacity: .35; cursor: not-allowed; }
+.item-editor-section { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--border); }
+.item-preview { margin-top: 14px; background: rgba(138,92,246,.08); }
+.item-preview-line { margin-top: 8px; }
+.item-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); font-size: 18px; }
+.item-detail-section { margin-top: 16px; }
+.item-detail-section h3 { margin: 0 0 7px; font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; }
+.item-detail-grid { display: grid; gap: 5px; }
+.item-detail-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 28px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); }
+.item-detail-row span { color: var(--text-dim); font-size: 12px; }
+.item-detail-row strong { text-align: right; overflow-wrap: anywhere; }
+.item-detail-actions { margin-top: 18px; }
+.equipment-warning { margin: 8px 0; padding: 8px 10px; border: 1px solid rgba(201,162,75,.6); border-radius: 8px; background: rgba(201,162,75,.12); color: var(--text); font-size: 12px; }
+
+@media (max-width: 700px) {
+  .inventory-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventory-toolbar .grow { grid-column: 1 / -1; }
+}
 
 @media (max-width: 520px) {
   .derived-grid { grid-template-columns: repeat(2, 1fr); }
