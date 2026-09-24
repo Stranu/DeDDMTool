@@ -124,7 +124,7 @@ export function renderMonsters(root, api) {
     if (entry.creatureType) meta.push(entry.creatureType);
     if (entry.cr !== '' && entry.cr != null) meta.push(`GS ${entry.cr}`);
     if (entry.ac !== '' && entry.ac != null) meta.push(`CA ${entry.ac}`);
-    meta.push(`Iniziativa ${entry.initiative === '' || entry.initiative == null ? '—' : entry.initiative}`);
+    meta.push(`Bonus iniziativa ${entry.initiativeBonus ?? entry.initiative ?? '—'}`);
     if (entry.hpMax !== '' && entry.hpMax != null) meta.push(`PF ${entry.hpMax}`);
     if (entry.knownSpells?.length) meta.push(`${entry.knownSpells.length} magie`);
     const info = el('div', { class: 'grow' }, [

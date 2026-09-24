@@ -239,7 +239,7 @@ export function calculateDerived(character) {
     savingThrowBonus,
     skillBonus,
     armorClass: baseArmor + dexterityPart + shieldBonus,
-    initiative: dexterity + (Number(character.initiativeBonus) || 0),
+    initiativeBonus: dexterity + (Number(character.initiativeBonus) || 0),
     passivePerception: 10 + mod('wisdom') + (character.skillProficiencies.includes('perception') ? proficiency : 0) + (character.skillExpertise.includes('perception') ? proficiency : 0) + skillBonus
   };
 }
@@ -272,7 +272,7 @@ export function renderPlayer(root, api) {
       el('div', { class: 'muted', text: [character.species, character.classes].filter(Boolean).join(' · ') || 'Scheda da completare' }),
       el('div', { class: 'derived-grid compact' }, [
         derivedStat('CA', derived.armorClass), derivedStat('PF', `${character.hpCurrent}/${character.hpMax}`),
-        derivedStat('Iniziativa', signed(derived.initiative)), derivedStat('Percezione', derived.passivePerception),
+        derivedStat('Bonus iniziativa', signed(derived.initiativeBonus)), derivedStat('Percezione', derived.passivePerception),
         derivedStat('Inventario', character.inventory.length), derivedStat('Magie', character.spellbook.knownSpellIds.length)
       ])
     ]);
@@ -423,7 +423,7 @@ function openCharacterView(character, api, root) {
   header.append(back, identity, edit);
 
   const summaryBar = el('section', { class: 'player-summary-bar' }, [
-    summaryCard('CA', summary.armorClass), summaryCard('Iniziativa', signed(summary.initiative)),
+    summaryCard('CA', summary.armorClass), summaryCard('Bonus iniziativa', signed(summary.initiativeBonus)),
     summaryCard('PF', `${character.hpCurrent}/${character.hpMax}`), summaryCard('Percezione', summary.passivePerception)
   ]);
 
@@ -712,7 +712,7 @@ function openCharacterEditor(character, api, root, isNew, options = {}) {
     derivedValues.append(
       derivedStat('Bonus competenza', `+${d.proficiency}`),
       derivedStat('CA calcolata', d.armorClass),
-      derivedStat('Iniziativa', signed(d.initiative)),
+      derivedStat('Bonus iniziativa', signed(d.initiativeBonus)),
       derivedStat('Percezione passiva', d.passivePerception),
       derivedStat('Caratteristica incantatore', abilityLabel(character.spellbook.castingAbility)),
       derivedStat('CD TS incantesimi', spellValue(d.spellSaveDc)),

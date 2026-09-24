@@ -108,7 +108,7 @@ function renderDrawer(title, contentNode) {
   const body = $('#drawer-body');
   body.innerHTML = '';
   if (contentNode) body.appendChild(contentNode);
-  $('#drawer-back').hidden = drawerHistory.length === 0;
+  $('#drawer-back').hidden = false;
   $('#drawer').hidden = false;
   $('#drawer-backdrop').hidden = false;
   $('#drawer').setAttribute('aria-hidden', 'false');
@@ -124,7 +124,21 @@ function openDrawer(title, contentNode, options = {}) {
 function drawerBack() {
   const previous = drawerHistory.pop();
   if (previous) renderDrawer(previous.title, previous.contentNode);
+  else confirmAndCloseDrawer();
 }
+
+let drawerClosing = false;
+async function confirmAndCloseDrawer() {
+  if (drawerClosing) return;
+  drawerClosing = true;
+  const closeButton = $('#drawer-close');
+  closeButton.disabled = true;
+  const saved = await save();
+  if (saved) closeDrawer();
+  closeButton.disabled = false;
+  drawerClosing = false;
+}
+
 function closeDrawer() {
   drawerHistory = [];
   $('#drawer').setAttribute('aria-hidden', 'true');
@@ -204,7 +218,7 @@ async function boot() {
   $$('.tab').forEach((t) => t.addEventListener('click', () => goTo(t.dataset.view)));
   $('#settings-btn').addEventListener('click', () => goTo('settings'));
   $('#menu-toggle').addEventListener('click', openModeMenu);
-  $('#drawer-close').addEventListener('click', closeDrawer);
+  $('#drawer-close').addEventListener('click', confirmAndCloseDrawer);
   $('#drawer-back').addEventListener('click', drawerBack);
   $('#drawer-backdrop').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });

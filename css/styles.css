@@ -47,6 +47,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
   cursor: pointer;
 }
 .icon-btn:active { background: var(--bg-elev-2); }
+.icon-btn:disabled { opacity: .45; cursor: wait; }
 
 /* ---------- Tabbar ---------- */
 .tabbar {

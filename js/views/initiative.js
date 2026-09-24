@@ -18,7 +18,7 @@ export function renderInitiative(root, api) {
   const nextBtn = el('button', { class: 'btn primary grow', title: 'Prossimo turno', html: ICON.play + '<span>Prossimo turno</span>' });
   const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi Mostri/PNG temporaneo o da archivio', html: '<span>+ Mostri</span>' });
   const rosterBtn = el('button', { class: 'btn accent', title: 'Gestisci PG e alleati ricorrenti', html: '<span>+ PG/Alleati</span>' });
-  const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera iniziativa', html: ICON.reset + '<span>Reset</span>' });
+  const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera i tiri di iniziativa', html: ICON.reset + '<span>Reset</span>' });
   toolbar.append(nextBtn, addBtn, rosterBtn, resetBtn);
   root.appendChild(toolbar);
 
@@ -54,20 +54,20 @@ export function renderInitiative(root, api) {
       'aria-current': active ? 'true' : false
     });
 
-    const init = el('input', {
-      class: 'c-init-input', type: 'number', inputmode: 'numeric', min: '-99', max: '99',
-      placeholder: '—', value: c.initiative == null ? '' : c.initiative,
-      'aria-label': `Iniziativa di ${c.name}`
+    const initRoll = el('input', {
+      class: 'c-init-input', type: 'number', inputmode: 'numeric', min: '1', max: '20',
+      placeholder: 'd20', value: c.initiativeRoll == null ? '' : c.initiativeRoll,
+      'aria-label': `Tiro d20 di iniziativa di ${c.name}`
     });
-    init.addEventListener('change', () => {
-      c.initiative = init.value === '' ? null : Number(init.value);
+    initRoll.addEventListener('change', () => {
+      c.initiativeRoll = initiativeRollValue(initRoll.value);
       sortCombatants(state.encounter);
       api.save();
       renderInitiative(root, api);
     });
 
     const kind = el('span', { class: 'kind', text: KIND_LABELS[c.kind] || 'PNG' });
-    const initiative = el('span', { class: 'c-initiative-value', text: `Iniziativa ${formatInitiative(c.initiative)}` });
+    const initiative = el('span', { class: 'c-initiative-value', text: initiativeSummary(c) });
     const name = el('div', { class: 'c-name' }, [el('span', { text: c.name || 'Senza nome' }), kind, initiative]);
     const sub = el('div', { class: 'c-sub' });
     if (c.ac !== '' && c.ac != null) {
@@ -130,7 +130,7 @@ export function renderInitiative(root, api) {
       renderInitiative(root, api);
     });
     actions.append(deadBtn, deleteBtn);
-    card.append(init, main, actions);
+    card.append(initRoll, main, actions);
     return card;
   }
 
@@ -144,10 +144,10 @@ export function renderInitiative(root, api) {
 
   function resetEncounter() {
     if (!state.encounter.combatants.length) return;
-    if (!confirm('Azzerare iniziative e round mantenendo tutti i partecipanti?')) return;
+    if (!confirm('Azzerare i tiri d20 e il round mantenendo tutti i partecipanti?')) return;
     state.encounter.round = 1;
     state.encounter.activeId = null;
-    for (const c of state.encounter.combatants) c.initiative = null;
+    for (const c of state.encounter.combatants) c.initiativeRoll = null;
     api.save();
     renderInitiative(root, api);
   }
@@ -190,8 +190,8 @@ function focusActiveCombatant(root, combatantId) {
 // ---------- Drawer reset ----------
 function openResetMenu(api, resetEncounter, resetComplete) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Scegli se azzerare solo i turni o rimuovere tutti i partecipanti dall’iniziativa.' }));
-  const keep = el('button', { class: 'btn primary block', type: 'button', html: '<span>Reset iniziativa · mantieni partecipanti</span>' });
+  body.appendChild(el('p', { class: 'muted', text: 'Scegli se azzerare solo i tiri d20 o rimuovere tutti i partecipanti dall’iniziativa.' }));
+  const keep = el('button', { class: 'btn primary block', type: 'button', html: '<span>Reset tiri d20 · mantieni partecipanti</span>' });
   keep.addEventListener('click', () => { resetEncounter(); api.closeDrawer(); });
   const clear = el('button', { class: 'btn danger block', type: 'button', style: 'margin-top:10px', html: '<span>Reset completo · svuota iniziativa</span>' });
   clear.addEventListener('click', () => { resetComplete(); api.closeDrawer(); });
@@ -216,12 +216,16 @@ function openCombatantDrawer(c, api, options = {}) {
   ]));
 
   const stats = el('div', { class: 'stat-grid' });
+  const initiativeFields = [
+    statField('Bonus iniziativa', c.initiativeBonus ?? c.initiative, (v) => { c.initiativeBonus = nullableNumber(v); saveAndRefresh(); })
+  ];
+  if (!options.shared) initiativeFields.push(statField('Tiro d20', c.initiativeRoll, (v) => { c.initiativeRoll = initiativeRollValue(v); saveAndRefresh(); }));
   stats.append(
     statField('CA', c.ac, (v) => { c.ac = v; saveAndRefresh(); }),
     statField('PF attuali', c.hpCurrent, (v) => { c.hpCurrent = v; saveAndRefresh(); }),
     statField('PF massimi', c.hpMax, (v) => { c.hpMax = v; saveAndRefresh(); }),
     statField('PF temporanei', c.tempHp, (v) => { c.tempHp = v === '' ? 0 : Math.max(0, Number(v)); saveAndRefresh(); }),
-    statField('Iniziativa', c.initiative, (v) => { c.initiative = v === '' ? null : Number(v); saveAndRefresh(); })
+    ...initiativeFields
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
@@ -447,7 +451,7 @@ function openAddMenu(api) {
       const row = el('div', { class: 'list-linkitem quick-add-item' });
       const nameButton = el('button', { class: 'grow quick-sheet-name', type: 'button', title: 'Visualizza scheda' }, [
         el('strong', { text: item.name }),
-        el('span', { class: 'muted source-initiative', text: `Iniziativa: ${formatInitiative(item.initiative)}` })
+        el('span', { class: 'muted source-initiative', text: `Bonus iniziativa: ${formatBonus(item.initiativeBonus ?? item.initiative)}` })
       ]);
       nameButton.addEventListener('click', () => openArchiveReadOnly(item, api));
       const addButton = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
@@ -468,7 +472,7 @@ function openAddMenu(api) {
 function openArchiveReadOnly(entry, api) {
   const body = el('div', {});
   body.appendChild(readOnlyField('Tipo creatura', entry.creatureType || '—'));
-  body.appendChild(readOnlyField('Iniziativa', formatInitiative(entry.initiative)));
+  body.appendChild(readOnlyField('Bonus iniziativa', formatBonus(entry.initiativeBonus ?? entry.initiative)));
   body.appendChild(readOnlyField('GS', entry.cr === '' || entry.cr == null ? '—' : String(entry.cr)));
   const stats = el('div', { class: 'stat-grid' }, [
     readOnlyField('CA', entry.ac === '' || entry.ac == null ? '—' : String(entry.ac)),
@@ -555,7 +559,7 @@ function openRoster(api) {
     lists.appendChild(el('div', { class: 'mini-title', text: title }));
     for (const item of collection) {
       const row = el('div', { class: 'list-linkitem' });
-      const name = sourceName(item.name, item.initiative, 'Apri e modifica scheda');
+      const name = sourceName(item.name, item.initiativeBonus ?? item.initiative, 'Apri e modifica scheda');
       name.addEventListener('click', () => openCombatantDrawer(item, api, { shared: true }));
       row.append(name);
       const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
@@ -586,7 +590,7 @@ function openRoster(api) {
       const derived = calculateDerived(character);
       const present = api.state.encounter.combatants.some((combatant) => combatant.playerId === character.id);
       const row = el('div', { class: `list-linkitem${present ? ' source-present' : ''}` });
-      row.append(sourceName(character.name, derived.initiative, 'Scheda Player'));
+      row.append(sourceName(character.name, derived.initiativeBonus, 'Scheda Player'));
       const add = el('button', { class: `chip${present ? '' : ' on'}`, type: 'button', text: present ? 'Presente' : 'Iniziativa' });
       add.disabled = present;
       add.addEventListener('click', () => {
@@ -629,7 +633,7 @@ export function openArchiveDrawer(entry, api, returnView = 'initiative') {
     statField('CA', entry.ac, (v) => { entry.ac = v; saveArchive(); }),
     statField('PF attuali', entry.hpCurrent, (v) => { entry.hpCurrent = v; saveArchive(); }),
     statField('PF massimi', entry.hpMax, (v) => { entry.hpMax = v; saveArchive(); }),
-    statField('Iniziativa', entry.initiative, (v) => { entry.initiative = v === '' ? null : Number(v); saveArchive(); })
+    statField('Bonus iniziativa', entry.initiativeBonus ?? entry.initiative, (v) => { entry.initiativeBonus = v === '' ? null : Number(v); saveArchive(); })
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
@@ -657,14 +661,37 @@ export function openArchiveDrawer(entry, api, returnView = 'initiative') {
   api.openDrawer(`Mostri/PNG: ${entry.name}`, body);
 }
 
-function formatInitiative(value) {
-  return value === '' || value == null || !Number.isFinite(Number(value)) ? '—' : String(Number(value));
+function formatBonus(value) {
+  return value === '' || value == null || !Number.isFinite(Number(value)) ? '—' : signedNumber(Number(value));
 }
 
-function sourceName(name, initiative, title) {
+function signedNumber(value) {
+  return Number(value) >= 0 ? `+${Number(value)}` : String(Number(value));
+}
+
+function initiativeRollValue(value) {
+  if (value === '' || value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(1, Math.min(20, number)) : null;
+}
+
+function initiativeTotal(combatant) {
+  if (combatant.initiativeRoll == null || combatant.initiativeRoll === '') return null;
+  return Number(combatant.initiativeRoll) + (Number(combatant.initiativeBonus) || 0);
+}
+
+function initiativeSummary(combatant) {
+  const bonus = formatBonus(combatant.initiativeBonus);
+  const total = initiativeTotal(combatant);
+  return total == null
+    ? `Bonus ${bonus} · Tiro —`
+    : `Iniziativa ${total} (${combatant.initiativeRoll} ${bonus})`;
+}
+
+function sourceName(name, initiativeBonus, title) {
   return el('span', { class: 'grow source-name', title }, [
     el('strong', { text: name || 'Senza nome' }),
-    el('span', { class: 'muted source-initiative', text: `Iniziativa: ${formatInitiative(initiative)}` })
+    el('span', { class: 'muted source-initiative', text: `Bonus iniziativa: ${formatBonus(initiativeBonus)}` })
   ]);
 }
 
@@ -672,7 +699,8 @@ function playerCharacterToCombatant(character) {
   const derived = calculateDerived(character);
   const combatant = makeCombatant(character.name, 'pc');
   combatant.playerId = character.id;
-  combatant.initiative = derived.initiative;
+  combatant.initiativeBonus = derived.initiativeBonus;
+  combatant.initiativeRoll = null;
   combatant.ac = derived.armorClass;
   combatant.hpCurrent = character.hpCurrent;
   combatant.hpMax = character.hpMax;
@@ -694,14 +722,16 @@ function addPlayerCharacterToEncounter(api, character) {
 export function makeCombatant(name, kind = 'monster') {
   return {
     id: uid(), name, kind,
-    initiative: null, ac: '', hpCurrent: '', hpMax: '', tempHp: 0, save: '', notes: '', creatureType: '', cr: '', dead: false,
+    initiativeBonus: null, initiativeRoll: null, ac: '', hpCurrent: '', hpMax: '', tempHp: 0, save: '', notes: '', creatureType: '', cr: '', dead: false,
     conditions: [], conditionNames: {}, affectedSpells: [], knownSpells: []
   };
 }
 
 export function cloneCombatant(source) {
   const copy = makeCombatant(source.name, source.kind);
-  for (const key of ['initiative', 'ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? (key === 'initiative' ? null : '');
+  copy.initiativeBonus = source.initiativeBonus ?? source.initiative ?? null;
+  copy.initiativeRoll = null;
+  for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? '';
   copy.conditions = [...(source.conditions || [])];
   copy.conditionNames = { ...(source.conditionNames || {}) };
   copy.affectedSpells = (source.affectedSpells || []).map((x) => ({ ...x }));
@@ -710,7 +740,7 @@ export function cloneCombatant(source) {
 }
 
 const SHARED_FIELDS = [
-  'name', 'kind', 'ac', 'hpCurrent', 'hpMax', 'tempHp', 'save', 'notes',
+  'name', 'kind', 'initiativeBonus', 'ac', 'hpCurrent', 'hpMax', 'tempHp', 'save', 'notes',
   'creatureType', 'cr', 'conditions', 'conditionNames', 'affectedSpells', 'knownSpells'
 ];
 
@@ -814,11 +844,11 @@ function normalizeState(state) {
   if (!Array.isArray(state.roster.pcs)) state.roster.pcs = [];
   if (!Array.isArray(state.roster.allies)) state.roster.allies = [];
   if (!Array.isArray(state.roster.archive)) state.roster.archive = [];
-  for (const c of state.encounter.combatants) normalizeCombatant(c);
-  for (const c of [...state.roster.pcs, ...state.roster.allies, ...state.roster.archive]) normalizeCombatant(c);
+  for (const c of state.encounter.combatants) normalizeCombatant(c, true);
+  for (const c of [...state.roster.pcs, ...state.roster.allies, ...state.roster.archive]) normalizeCombatant(c, false);
 }
 
-function normalizeCombatant(c) {
+function normalizeCombatant(c, isEncounter = false) {
   if (!c.id) c.id = uid();
   if (!c.kind) c.kind = 'monster';
   if (!Array.isArray(c.conditions)) c.conditions = [];
@@ -827,17 +857,22 @@ function normalizeCombatant(c) {
   if (!Array.isArray(c.knownSpells)) c.knownSpells = [];
   c.affectedSpells = normalizeSpellLinks(c.affectedSpells);
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
-  if (c.initiative === undefined || c.initiative === '') c.initiative = null;
-  else {
-    const initiative = Number(c.initiative);
-    c.initiative = Number.isFinite(initiative) ? initiative : null;
-  }
+  if (c.initiativeBonus === undefined) c.initiativeBonus = c.initiative === undefined ? null : nullableNumber(c.initiative);
+  else c.initiativeBonus = nullableNumber(c.initiativeBonus);
+  c.initiativeRoll = isEncounter ? initiativeRollValue(c.initiativeRoll) : null;
+  delete c.initiative;
   if (c.tempHp === undefined) c.tempHp = 0;
   if (c.notes === undefined) c.notes = '';
   if (c.creatureType === undefined) c.creatureType = '';
   if (c.cr === undefined) c.cr = '';
   if (c.dead === undefined) c.dead = false;
   if (c.playerId === undefined) c.playerId = null;
+}
+
+function nullableNumber(value) {
+  if (value === '' || value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function normalizeSpellLinks(links) {
@@ -863,8 +898,11 @@ function normalizeSpellLinks(links) {
 function sortCombatants(encounter) {
   const before = encounter.combatants.map((c) => c.id);
   encounter.combatants.sort((a, b) => {
-    const ai = a.initiative == null || a.initiative === '' ? -Infinity : Number(a.initiative);
-    const bi = b.initiative == null || b.initiative === '' ? -Infinity : Number(b.initiative);
+    const ai = initiativeTotal(a);
+    const bi = initiativeTotal(b);
+    if (ai == null && bi == null) return (Number(b.initiativeBonus) || 0) - (Number(a.initiativeBonus) || 0);
+    if (ai == null) return 1;
+    if (bi == null) return -1;
     return bi - ai;
   });
   // Se l'activeId non è più presente, lasciamo che Prossimo turno scelga il primo.
