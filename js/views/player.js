@@ -1116,7 +1116,6 @@ export function openItemEditor(character, item, api, root, isNew, returnView = '
     if (patch.weaponAbility !== undefined) weaponAbility.value = patch.weaponAbility;
     if (patch.description !== undefined) description.input.value = patch.description;
     updateCategoryFields();
-    preset.value = '';
   });
 
   body.append(

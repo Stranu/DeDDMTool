@@ -3,6 +3,7 @@
 // dopo una chiusura accidentale della PWA.
 import { el, ICON, uid, fold } from '../util.js';
 import { spellDetails } from './spells.js';
+import { calculateDerived, normalizePlayerState } from './player.js';
 
 const KIND_LABELS = { pc: 'PG', ally: 'Alleato', monster: 'Mostro/PNG' };
 
@@ -66,7 +67,8 @@ export function renderInitiative(root, api) {
     });
 
     const kind = el('span', { class: 'kind', text: KIND_LABELS[c.kind] || 'PNG' });
-    const name = el('div', { class: 'c-name' }, [el('span', { text: c.name || 'Senza nome' }), kind]);
+    const initiative = el('span', { class: 'c-initiative-value', text: `Iniziativa ${formatInitiative(c.initiative)}` });
+    const name = el('div', { class: 'c-name' }, [el('span', { text: c.name || 'Senza nome' }), kind, initiative]);
     const sub = el('div', { class: 'c-sub' });
     if (c.ac !== '' && c.ac != null) {
       const ac = el('span', {});
@@ -218,7 +220,8 @@ function openCombatantDrawer(c, api, options = {}) {
     statField('CA', c.ac, (v) => { c.ac = v; saveAndRefresh(); }),
     statField('PF attuali', c.hpCurrent, (v) => { c.hpCurrent = v; saveAndRefresh(); }),
     statField('PF massimi', c.hpMax, (v) => { c.hpMax = v; saveAndRefresh(); }),
-    statField('PF temporanei', c.tempHp, (v) => { c.tempHp = v === '' ? 0 : Math.max(0, Number(v)); saveAndRefresh(); })
+    statField('PF temporanei', c.tempHp, (v) => { c.tempHp = v === '' ? 0 : Math.max(0, Number(v)); saveAndRefresh(); }),
+    statField('Iniziativa', c.initiative, (v) => { c.initiative = v === '' ? null : Number(v); saveAndRefresh(); })
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
@@ -442,7 +445,10 @@ function openAddMenu(api) {
     }
     for (const item of matches) {
       const row = el('div', { class: 'list-linkitem quick-add-item' });
-      const nameButton = el('button', { class: 'grow quick-sheet-name', type: 'button', title: 'Visualizza scheda', text: item.name });
+      const nameButton = el('button', { class: 'grow quick-sheet-name', type: 'button', title: 'Visualizza scheda' }, [
+        el('strong', { text: item.name }),
+        el('span', { class: 'muted source-initiative', text: `Iniziativa: ${formatInitiative(item.initiative)}` })
+      ]);
       nameButton.addEventListener('click', () => openArchiveReadOnly(item, api));
       const addButton = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
       addButton.addEventListener('click', () => {
@@ -462,6 +468,7 @@ function openAddMenu(api) {
 function openArchiveReadOnly(entry, api) {
   const body = el('div', {});
   body.appendChild(readOnlyField('Tipo creatura', entry.creatureType || '—'));
+  body.appendChild(readOnlyField('Iniziativa', formatInitiative(entry.initiative)));
   body.appendChild(readOnlyField('GS', entry.cr === '' || entry.cr == null ? '—' : String(entry.cr)));
   const stats = el('div', { class: 'stat-grid' }, [
     readOnlyField('CA', entry.ac === '' || entry.ac == null ? '—' : String(entry.ac)),
@@ -506,8 +513,9 @@ function appendReadOnlySpells(body, title, links, api) {
 }
 
 function openRoster(api) {
+  normalizePlayerState(api.state);
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'PG e alleati ricorrenti restano disponibili tra gli incontri. Le loro statistiche sono condivise con le copie presenti nell’iniziativa.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'Le schede GM e i personaggi Player sono fonti separate. L’aggiunta all’iniziativa crea sempre una copia indipendente.' }));
 
   const addRosterForm = (kind, title, collection) => {
     const section = el('section', {});
@@ -529,8 +537,8 @@ function openRoster(api) {
     return section;
   };
 
-  const pcs = addRosterForm('pc', 'PG', api.state.roster.pcs);
-  const allies = addRosterForm('ally', 'Alleati ricorrenti', api.state.roster.allies);
+  const pcs = addRosterForm('pc', 'PG creati dal GM', api.state.roster.pcs);
+  const allies = addRosterForm('ally', 'Alleati creati dal GM', api.state.roster.allies);
   body.append(pcs, allies);
 
   const lists = el('div', {});
@@ -538,15 +546,16 @@ function openRoster(api) {
 
   function redrawRoster() {
     lists.innerHTML = '';
-    drawRosterList('PG', api.state.roster.pcs, 'pc');
-    drawRosterList('Alleati ricorrenti', api.state.roster.allies, 'ally');
+    drawRosterList('PG creati dal GM', api.state.roster.pcs, 'pc');
+    drawRosterList('Alleati creati dal GM', api.state.roster.allies, 'ally');
+    drawPlayerList();
   }
   function drawRosterList(title, collection, kind) {
     if (!collection.length) return;
     lists.appendChild(el('div', { class: 'mini-title', text: title }));
     for (const item of collection) {
       const row = el('div', { class: 'list-linkitem' });
-      const name = el('span', { class: 'grow', text: item.name, title: 'Apri e modifica scheda' });
+      const name = sourceName(item.name, item.initiative, 'Apri e modifica scheda');
       name.addEventListener('click', () => openCombatantDrawer(item, api, { shared: true }));
       row.append(name);
       const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
@@ -567,6 +576,25 @@ function openRoster(api) {
         redrawRoster();
       });
       row.append(add, remove);
+      lists.appendChild(row);
+    }
+  }
+  function drawPlayerList() {
+    if (!api.state.player.characters.length) return;
+    lists.appendChild(el('div', { class: 'mini-title', text: 'Personaggi creati in modalità Player' }));
+    for (const character of api.state.player.characters) {
+      const derived = calculateDerived(character);
+      const present = api.state.encounter.combatants.some((combatant) => combatant.playerId === character.id);
+      const row = el('div', { class: `list-linkitem${present ? ' source-present' : ''}` });
+      row.append(sourceName(character.name, derived.initiative, 'Scheda Player'));
+      const add = el('button', { class: `chip${present ? '' : ' on'}`, type: 'button', text: present ? 'Presente' : 'Iniziativa' });
+      add.disabled = present;
+      add.addEventListener('click', () => {
+        if (!addPlayerCharacterToEncounter(api, character)) return;
+        api.toast(`${character.name} aggiunto all’iniziativa`);
+        api.refresh('initiative');
+      });
+      row.appendChild(add);
       lists.appendChild(row);
     }
   }
@@ -600,7 +628,8 @@ export function openArchiveDrawer(entry, api, returnView = 'initiative') {
   stats.append(
     statField('CA', entry.ac, (v) => { entry.ac = v; saveArchive(); }),
     statField('PF attuali', entry.hpCurrent, (v) => { entry.hpCurrent = v; saveArchive(); }),
-    statField('PF massimi', entry.hpMax, (v) => { entry.hpMax = v; saveArchive(); })
+    statField('PF massimi', entry.hpMax, (v) => { entry.hpMax = v; saveArchive(); }),
+    statField('Iniziativa', entry.initiative, (v) => { entry.initiative = v === '' ? null : Number(v); saveArchive(); })
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
@@ -628,6 +657,39 @@ export function openArchiveDrawer(entry, api, returnView = 'initiative') {
   api.openDrawer(`Mostri/PNG: ${entry.name}`, body);
 }
 
+function formatInitiative(value) {
+  return value === '' || value == null || !Number.isFinite(Number(value)) ? '—' : String(Number(value));
+}
+
+function sourceName(name, initiative, title) {
+  return el('span', { class: 'grow source-name', title }, [
+    el('strong', { text: name || 'Senza nome' }),
+    el('span', { class: 'muted source-initiative', text: `Iniziativa: ${formatInitiative(initiative)}` })
+  ]);
+}
+
+function playerCharacterToCombatant(character) {
+  const derived = calculateDerived(character);
+  const combatant = makeCombatant(character.name, 'pc');
+  combatant.playerId = character.id;
+  combatant.initiative = derived.initiative;
+  combatant.ac = derived.armorClass;
+  combatant.hpCurrent = character.hpCurrent;
+  combatant.hpMax = character.hpMax;
+  combatant.tempHp = character.tempHp;
+  combatant.notes = character.notes || '';
+  return combatant;
+}
+
+function addPlayerCharacterToEncounter(api, character) {
+  if (api.state.encounter.combatants.some((combatant) => combatant.playerId === character.id)) {
+    api.toast(`${character.name} è già presente nell’iniziativa.`);
+    return false;
+  }
+  addToEncounter(api, playerCharacterToCombatant(character));
+  return true;
+}
+
 // ---------- Data helpers ----------
 export function makeCombatant(name, kind = 'monster') {
   return {
@@ -639,7 +701,7 @@ export function makeCombatant(name, kind = 'monster') {
 
 export function cloneCombatant(source) {
   const copy = makeCombatant(source.name, source.kind);
-  for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? '';
+  for (const key of ['initiative', 'ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? (key === 'initiative' ? null : '');
   copy.conditions = [...(source.conditions || [])];
   copy.conditionNames = { ...(source.conditionNames || {}) };
   copy.affectedSpells = (source.affectedSpells || []).map((x) => ({ ...x }));
@@ -765,12 +827,17 @@ function normalizeCombatant(c) {
   if (!Array.isArray(c.knownSpells)) c.knownSpells = [];
   c.affectedSpells = normalizeSpellLinks(c.affectedSpells);
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
-  if (c.initiative === undefined) c.initiative = null;
+  if (c.initiative === undefined || c.initiative === '') c.initiative = null;
+  else {
+    const initiative = Number(c.initiative);
+    c.initiative = Number.isFinite(initiative) ? initiative : null;
+  }
   if (c.tempHp === undefined) c.tempHp = 0;
   if (c.notes === undefined) c.notes = '';
   if (c.creatureType === undefined) c.creatureType = '';
   if (c.cr === undefined) c.cr = '';
   if (c.dead === undefined) c.dead = false;
+  if (c.playerId === undefined) c.playerId = null;
 }
 
 function normalizeSpellLinks(links) {

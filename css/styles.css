@@ -147,8 +147,10 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 }
 .combatant.active .c-init-input { border-color: var(--active-glow); }
 .c-main { flex: 1; min-width: 0; cursor: pointer; }
-.c-name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+.c-name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.c-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-name .kind { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: var(--bg-elev-2); color: var(--text-dim); font-weight: 700; text-transform: uppercase; }
+.c-initiative-value { font-size: 11px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-dim); font-weight: 600; }
 .c-sub { font-size: 12px; color: var(--text-dim); display: flex; gap: 10px; flex-wrap: wrap; margin-top: 3px; }
 .c-sub b { color: var(--text); }
 .c-conditions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
@@ -216,6 +218,9 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .list-linkitem.quick-add-item { min-height: 44px; }
 .list-linkitem.archive-item { flex-wrap: wrap; }
 .list-linkitem .grow { cursor: pointer; }
+.source-name { display: flex; flex-direction: column; min-width: 0; }
+.source-initiative { display: block; font-size: 11px; margin-top: 2px; }
+.list-linkitem.source-present { border-color: var(--accent-2); background: rgba(201,162,75,.08); }
 .list-linkitem.cast { border-color: var(--accent-2); background: rgba(201,162,75,0.08); }
 .mini-title { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; margin: 16px 0 6px; }
 
