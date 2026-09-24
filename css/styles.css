@@ -335,3 +335,45 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .slot-input { width: 58px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .spellbook-row { min-height: 44px; }
 .inventory-category { margin-top: 16px; }
+
+/* ---------- Character sheet inspired layout ---------- */
+.player-sheet-page { min-height: calc(100vh - var(--header-h) - var(--tabbar-h)); margin: -12px; padding: 0 12px 28px; background: #0f171e; color: var(--text); }
+.player-sheet-header { position: sticky; top: calc(var(--header-h) + var(--safe-top)); z-index: 15; display: flex; align-items: center; gap: 10px; margin: 0 -12px; padding: 12px; background: #202d38; border-bottom: 1px solid #334654; }
+.sheet-back-btn { appearance: none; border: 0; background: transparent; color: var(--text); font-size: 34px; line-height: 1; width: 38px; height: 42px; cursor: pointer; }
+.player-sheet-identity { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.player-sheet-identity h1 { margin: 0; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-sheet-identity p { margin: 2px 0 0; color: var(--text-dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-avatar { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border-radius: 10px; background: var(--player-color, var(--accent)); color: #fff; font-weight: 800; border: 2px solid rgba(255,255,255,.45); }
+.player-summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin: 12px 0; }
+.summary-card { min-height: 68px; padding: 9px 6px; border: 1px solid #334654; border-radius: 9px; background: #18232c; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.summary-card span { color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: .4px; }
+.summary-card strong { font-size: 20px; color: var(--text); }
+.sheet-section-bar { position: sticky; top: calc(var(--header-h) + var(--safe-top) + 67px); z-index: 12; display: flex; align-items: center; gap: 8px; padding: 11px 12px; margin: 0 0 14px; border: 1px solid #334654; border-radius: 8px; background: #243440; }
+.sheet-section-bar strong { flex: 1; font-size: 16px; }
+.sheet-menu-toggle { appearance: none; border: 0; background: #d22c2c; color: #fff; border-radius: 5px; width: 34px; height: 32px; font-size: 21px; cursor: pointer; }
+.sheet-section-menu { position: absolute; top: calc(100% + 7px); left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 9px; border: 1px solid #405463; border-radius: 8px; background: #202d38; box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+.sheet-section-menu[hidden] { display: none; }
+.sheet-section-option { appearance: none; min-height: 43px; border: 1px solid #334654; border-radius: 6px; background: #18232c; color: var(--text); text-align: left; padding: 8px 10px; font: inherit; cursor: pointer; }
+.sheet-section-option.active { border-color: var(--accent-2); background: rgba(201,162,75,.13); }
+.player-sheet-content { padding-bottom: 18px; }
+.sheet-section-heading { display: flex; align-items: center; gap: 8px; margin: 18px 0 10px; }
+.sheet-section-heading h2 { margin: 0; font-size: 19px; }
+.sheet-section-icon { color: var(--accent-2); font-size: 21px; }
+.ability-sheet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.ability-sheet-block, .skills-sheet-block { padding: 10px; border: 1px solid #334654; border-radius: 9px; background: #18232c; }
+.ability-sheet-block h3, .skills-sheet-block h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; color: var(--text-dim); }
+.ability-score { font-size: 25px; font-weight: 800; margin-bottom: 8px; }
+.ability-sheet-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 29px; border-top: 1px solid rgba(64,84,99,.55); font-size: 12px; }
+.ability-sheet-row strong { color: var(--text); font-size: 15px; }
+.skills-sheet-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+.senses-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.player-sheet-page.editing { background: var(--bg); }
+.player-sheet-page.editing .player-sheet-toolbar { position: sticky; top: calc(var(--header-h) + var(--safe-top)); z-index: 15; display: flex; gap: 8px; margin: 0 -12px 12px; padding: 10px 12px; background: #202d38; border-bottom: 1px solid #334654; }
+
+@media (max-width: 600px) {
+  .player-sheet-header { padding: 9px 8px; }
+  .player-sheet-header .btn { padding: 8px 9px; font-size: 12px; }
+  .player-summary-bar { grid-template-columns: repeat(2, 1fr); }
+  .ability-sheet-grid { grid-template-columns: repeat(2, 1fr); }
+  .senses-grid { grid-template-columns: 1fr; }
+}

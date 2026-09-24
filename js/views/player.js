@@ -228,47 +228,130 @@ export function renderInventory(root, api) {
 
 function openCharacterView(character, api, root) {
   normalizeCharacter(character);
-  const derived = calculateDerived(character);
-  const body = el('div', { class: 'player-readonly' });
-  const edit = el('button', { class: 'btn primary', type: 'button', html: ICON.edit + '<span>Modifica scheda</span>' });
-  edit.addEventListener('click', () => openCharacterEditor(character, api, root, false, { inline: true }));
-  body.appendChild(el('div', { class: 'player-hero', style: `--player-color:${character.color}` }, [
-    el('span', { class: 'player-color-dot large' }),
-    el('div', { class: 'grow' }, [el('h2', { text: character.name }), el('div', { class: 'muted', text: [character.species, character.classes, `Livello ${character.level}`].filter(Boolean).join(' · ') })])
-  ]));
-  body.appendChild(el('div', { class: 'derived-grid' }, [
-    derivedStat('CA', derived.armorClass), derivedStat('PF', `${character.hpCurrent}/${character.hpMax}`), derivedStat('PF temp', character.tempHp),
-    derivedStat('Iniziativa', signed(derived.initiative)), derivedStat('Percezione', derived.passivePerception), derivedStat('Bonus comp.', `+${derived.proficiency}`)
-  ]));
-  body.appendChild(abilitySheetSection(character, derived));
-  body.appendChild(equippedSection(character, api, root));
-  body.appendChild(spellbookSection(character, api, root, { editable: false }));
-  if (character.notes) body.appendChild(readOnlySection('Note', character.notes, true));
+  let currentSection = 'summary';
   const page = el('div', { class: 'player-sheet-page' });
-  const toolbar = el('div', { class: 'player-sheet-toolbar' });
-  const back = el('button', { class: 'btn ghost', type: 'button', html: '<span>← Personaggi</span>' });
-  back.addEventListener('click', () => { api.refresh('player'); });
-  toolbar.append(back, el('div', { class: 'grow' }), edit);
-  page.append(toolbar, body);
+  const content = el('main', { class: 'player-sheet-content' });
+  const summary = calculateDerived(character);
+
+  const header = el('header', { class: 'player-sheet-header', style: `--player-color:${character.color}` });
+  const back = el('button', { class: 'sheet-back-btn', type: 'button', title: 'Torna ai personaggi', html: '<span>‹</span>' });
+  back.addEventListener('click', () => api.refresh('player'));
+  const identity = el('div', { class: 'player-sheet-identity' }, [
+    el('span', { class: 'player-avatar', text: initials(character.name) }),
+    el('div', { class: 'grow' }, [
+      el('h1', { text: character.name }),
+      el('p', { text: [character.species, character.classes, `Livello ${character.level}`].filter(Boolean).join(' · ') })
+    ])
+  ]);
+  const edit = el('button', { class: 'btn primary', type: 'button', html: ICON.edit + '<span>Modifica</span>' });
+  edit.addEventListener('click', () => openCharacterEditor(character, api, root, false, { inline: true }));
+  header.append(back, identity, edit);
+
+  const summaryBar = el('section', { class: 'player-summary-bar' }, [
+    summaryCard('CA', summary.armorClass), summaryCard('Iniziativa', signed(summary.initiative)),
+    summaryCard('PF', `${character.hpCurrent}/${character.hpMax}`), summaryCard('Percezione', summary.passivePerception)
+  ]);
+
+  const sectionBar = el('div', { class: 'sheet-section-bar' });
+  const sectionTitle = el('strong', { text: 'Riepilogo' });
+  const menuToggle = el('button', { class: 'sheet-menu-toggle', type: 'button', text: '☷', title: 'Cambia sezione', 'aria-expanded': 'false' });
+  const menu = el('div', { class: 'sheet-section-menu', hidden: true });
+  const sections = [
+    ['summary', 'Riepilogo'], ['abilities', 'Caratteristiche e TS'], ['skills', 'Abilità'],
+    ['inventory', 'Inventario/equipaggiamento'], ['spells', 'Magie'], ['notes', 'Note']
+  ];
+  for (const [id, label] of sections) {
+    const option = el('button', { class: `sheet-section-option${id === currentSection ? ' active' : ''}`, type: 'button', text: label });
+    option.addEventListener('click', () => {
+      currentSection = id;
+      sectionTitle.textContent = label;
+      menu.hidden = true;
+      menuToggle.setAttribute('aria-expanded', 'false');
+      menu.querySelectorAll('.sheet-section-option').forEach((node) => node.classList.toggle('active', node === option));
+      renderSection();
+    });
+    menu.appendChild(option);
+  }
+  menuToggle.addEventListener('click', () => {
+    menu.hidden = !menu.hidden;
+    menuToggle.setAttribute('aria-expanded', String(!menu.hidden));
+  });
+  sectionBar.append(sectionTitle, menuToggle, menu);
+
+  function renderSection() {
+    content.innerHTML = '';
+    if (currentSection === 'summary') {
+      content.append(abilitySheetSection(character, calculateDerived(character)), equippedSection(character, api, root), spellbookSection(character, api, root, { editable: false }));
+    } else if (currentSection === 'abilities') {
+      content.append(abilitySheetSection(character, calculateDerived(character)), sensesSection(character));
+    } else if (currentSection === 'skills') {
+      content.append(skillsReadOnlySection(character, calculateDerived(character)));
+    } else if (currentSection === 'inventory') {
+      content.append(equippedSection(character, api, root));
+      const openInventory = el('button', { class: 'btn primary block', type: 'button', text: 'Apri inventario completo' });
+      openInventory.addEventListener('click', () => api.goTo('inventory'));
+      content.appendChild(openInventory);
+    } else if (currentSection === 'spells') {
+      content.append(spellbookSection(character, api, root, { editable: false }));
+    } else {
+      content.append(readOnlySection('Note', character.notes || 'Nessuna nota.', true));
+    }
+  }
+
+  page.append(header, summaryBar, sectionBar, content);
   root.innerHTML = '';
   root.appendChild(page);
+  renderSection();
 }
 
 function abilitySheetSection(character, derived) {
   const section = el('section', { class: 'player-section' });
-  section.appendChild(el('div', { class: 'mini-title', text: 'Caratteristiche, tiri salvezza e abilità' }));
+  section.appendChild(el('div', { class: 'sheet-section-heading' }, [el('span', { class: 'sheet-section-icon', text: '✦' }), el('h2', { text: 'Caratteristiche e tiri salvezza' })]));
   const grid = el('div', { class: 'ability-sheet-grid' });
-  for (const [ability, label, abbr] of ABILITIES) {
+  for (const [ability, label] of ABILITIES) {
     const block = el('section', { class: 'ability-sheet-block' });
-    block.appendChild(el('h3', { text: `${label} ${character.stats[ability]} / ${signed(derived.modifiers[ability])}` }));
-    const save = el('div', { class: 'ability-sheet-row' }, [el('span', { text: 'TS' }), el('strong', { text: signed(derived.savingThrows[ability]) })]);
-    block.appendChild(save);
-    for (const [skill, skillLabel, skillAbility] of SKILLS.filter((item) => item[2] === ability)) {
-      block.appendChild(el('div', { class: 'ability-sheet-row' }, [el('span', { text: skillLabel }), el('strong', { text: signed(derived.skills[skill]) })]));
+    block.appendChild(el('h3', { text: label }));
+    block.appendChild(el('div', { class: 'ability-score', text: `${character.stats[ability]} / ${signed(derived.modifiers[ability])}` }));
+    block.appendChild(el('div', { class: 'ability-sheet-row' }, [el('span', { text: 'Tiro salvezza' }), el('strong', { text: signed(derived.savingThrows[ability]) })]));
+    grid.appendChild(block);
+  }
+  section.appendChild(grid); return section;
+}
+
+function skillsReadOnlySection(character, derived) {
+  const section = el('section', { class: 'player-section' });
+  section.appendChild(el('div', { class: 'sheet-section-heading' }, [el('span', { class: 'sheet-section-icon', text: '✧' }), el('h2', { text: 'Abilità' })]));
+  const grid = el('div', { class: 'skills-sheet-grid' });
+  for (const [ability, label] of ABILITIES) {
+    const block = el('section', { class: 'skills-sheet-block' });
+    block.appendChild(el('h3', { text: label }));
+    for (const [skill, skillLabel] of SKILLS.filter((item) => item[2] === ability)) {
+      const prof = character.skillExpertise.includes(skill) ? ' · doppia competenza' : character.skillProficiencies.includes(skill) ? ' · competenza' : '';
+      block.appendChild(el('div', { class: 'ability-sheet-row' }, [el('span', { text: skillLabel + prof }), el('strong', { text: signed(derived.skills[skill]) })]));
     }
     grid.appendChild(block);
   }
   section.appendChild(grid); return section;
+}
+
+function sensesSection(character) {
+  const derived = calculateDerived(character);
+  return el('section', { class: 'player-section' }, [
+    el('div', { class: 'sheet-section-heading' }, [el('span', { class: 'sheet-section-icon', text: '◉' }), el('h2', { text: 'Sensi' })]),
+    el('div', { class: 'senses-grid' }, [
+      derivedStat('Percezione passiva', derived.passivePerception),
+      derivedStat('Indagine passiva', 10 + derived.modifiers.intelligence),
+      derivedStat('Intuizione passiva', 10 + derived.modifiers.wisdom)
+    ])
+  ]);
+}
+
+function summaryCard(label, value) {
+  return el('div', { class: 'summary-card' }, [el('span', { text: label }), el('strong', { text: String(value) })]);
+}
+
+function initials(name) {
+  return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
 function readOnlySection(title, text, multiline = false) {
