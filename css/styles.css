@@ -151,7 +151,6 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .c-name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .c-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-name .kind { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: var(--bg-elev-2); color: var(--text-dim); font-weight: 700; text-transform: uppercase; }
-.c-initiative-value { font-size: 11px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-dim); font-weight: 600; }
 .c-sub { font-size: 12px; color: var(--text-dim); display: flex; gap: 10px; flex-wrap: wrap; margin-top: 3px; }
 .c-sub b { color: var(--text); }
 .c-conditions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }

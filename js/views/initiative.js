@@ -67,8 +67,7 @@ export function renderInitiative(root, api) {
     });
 
     const kind = el('span', { class: 'kind', text: KIND_LABELS[c.kind] || 'PNG' });
-    const initiative = el('span', { class: 'c-initiative-value', text: initiativeSummary(c) });
-    const name = el('div', { class: 'c-name' }, [el('span', { text: c.name || 'Senza nome' }), kind, initiative]);
+    const name = el('div', { class: 'c-name' }, [el('span', { text: c.name || 'Senza nome' }), kind]);
     const sub = el('div', { class: 'c-sub' });
     if (c.ac !== '' && c.ac != null) {
       const ac = el('span', {});
@@ -217,7 +216,7 @@ function openCombatantDrawer(c, api, options = {}) {
 
   const stats = el('div', { class: 'stat-grid' });
   const initiativeFields = options.shared
-    ? [statField('Bonus iniziativa', c.initiativeBonus ?? c.initiative, (v) => { c.initiativeBonus = nullableNumber(v); saveAndRefresh(); })]
+    ? [statField('Bonus iniziativa', c.initiativeBonus, (v) => { c.initiativeBonus = nullableNumber(v); saveAndRefresh(); })]
     : [statField('Iniziativa totale', c.initiative, (v) => { c.initiative = nullableNumber(v); saveAndRefresh(); })];
   stats.append(
     statField('CA', c.ac, (v) => { c.ac = v; saveAndRefresh(); }),
@@ -227,7 +226,7 @@ function openCombatantDrawer(c, api, options = {}) {
     ...initiativeFields
   );
   body.appendChild(stats);
-  if (!options.shared) body.appendChild(readOnlyField('Bonus iniziativa scheda', formatBonus(c.initiativeBonus)));
+  if (!options.shared) body.appendChild(readOnlyField('Bonus iniziativa', formatBonus(c.initiativeBonus)));
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
     el('label', { text: 'Note / attacchi / capacità' }),
     textareaField(c.notes, (value) => { c.notes = value; saveAndRefresh(); }, 'es. Multiattacco, morso +5, danni 1d6+3')
@@ -451,7 +450,7 @@ function openAddMenu(api) {
       const row = el('div', { class: 'list-linkitem quick-add-item' });
       const nameButton = el('button', { class: 'grow quick-sheet-name', type: 'button', title: 'Visualizza scheda' }, [
         el('strong', { text: item.name }),
-        el('span', { class: 'muted source-initiative', text: `Bonus iniziativa: ${formatBonus(item.initiativeBonus ?? item.initiative)}` })
+        el('span', { class: 'muted source-initiative', text: `Bonus iniziativa: ${formatBonus(item.initiativeBonus)}` })
       ]);
       nameButton.addEventListener('click', () => openArchiveReadOnly(item, api));
       const addButton = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
@@ -472,7 +471,7 @@ function openAddMenu(api) {
 function openArchiveReadOnly(entry, api) {
   const body = el('div', {});
   body.appendChild(readOnlyField('Tipo creatura', entry.creatureType || '—'));
-  body.appendChild(readOnlyField('Bonus iniziativa', formatBonus(entry.initiativeBonus ?? entry.initiative)));
+  body.appendChild(readOnlyField('Bonus iniziativa', formatBonus(entry.initiativeBonus)));
   body.appendChild(readOnlyField('GS', entry.cr === '' || entry.cr == null ? '—' : String(entry.cr)));
   const stats = el('div', { class: 'stat-grid' }, [
     readOnlyField('CA', entry.ac === '' || entry.ac == null ? '—' : String(entry.ac)),
@@ -559,7 +558,7 @@ function openRoster(api) {
     lists.appendChild(el('div', { class: 'mini-title', text: title }));
     for (const item of collection) {
       const row = el('div', { class: 'list-linkitem' });
-      const name = sourceName(item.name, item.initiativeBonus ?? item.initiative, 'Apri e modifica scheda');
+      const name = sourceName(item.name, item.initiativeBonus, 'Apri e modifica scheda');
       name.addEventListener('click', () => openCombatantDrawer(item, api, { shared: true }));
       row.append(name);
       const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
@@ -633,7 +632,7 @@ export function openArchiveDrawer(entry, api, returnView = 'initiative') {
     statField('CA', entry.ac, (v) => { entry.ac = v; saveArchive(); }),
     statField('PF attuali', entry.hpCurrent, (v) => { entry.hpCurrent = v; saveArchive(); }),
     statField('PF massimi', entry.hpMax, (v) => { entry.hpMax = v; saveArchive(); }),
-    statField('Bonus iniziativa', entry.initiativeBonus ?? entry.initiative, (v) => { entry.initiativeBonus = v === '' ? null : Number(v); saveArchive(); })
+    statField('Bonus iniziativa', entry.initiativeBonus, (v) => { entry.initiativeBonus = nullableNumber(v); saveArchive(); })
   );
   body.appendChild(stats);
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
@@ -667,16 +666,6 @@ function formatBonus(value) {
 
 function signedNumber(value) {
   return Number(value) >= 0 ? `+${Number(value)}` : String(Number(value));
-}
-
-function initiativeSummary(combatant) {
-  const total = formatInitiative(combatant.initiative);
-  const bonus = formatBonus(combatant.initiativeBonus);
-  return `Iniziativa ${total} · Bonus ${bonus}`;
-}
-
-function formatInitiative(value) {
-  return value === '' || value == null || !Number.isFinite(Number(value)) ? '—' : String(Number(value));
 }
 
 function sourceName(name, initiativeBonus, title) {
@@ -720,7 +709,7 @@ export function makeCombatant(name, kind = 'monster') {
 
 export function cloneCombatant(source) {
   const copy = makeCombatant(source.name, source.kind);
-  copy.initiativeBonus = source.initiativeBonus ?? source.initiative ?? null;
+  copy.initiativeBonus = source.initiativeBonus ?? null;
   copy.initiative = null;
   for (const key of ['ac', 'hpCurrent', 'hpMax', 'save', 'notes', 'creatureType', 'cr']) copy[key] = source[key] ?? '';
   copy.conditions = [...(source.conditions || [])];
@@ -848,15 +837,9 @@ function normalizeCombatant(c, isEncounter = false) {
   if (!Array.isArray(c.knownSpells)) c.knownSpells = [];
   c.affectedSpells = normalizeSpellLinks(c.affectedSpells);
   c.knownSpells = normalizeSpellLinks(c.knownSpells);
-  if (c.initiativeBonus === undefined) c.initiativeBonus = c.initiative === undefined ? null : nullableNumber(c.initiative);
-  else c.initiativeBonus = nullableNumber(c.initiativeBonus);
-  if (isEncounter) {
-    if (c.initiative === undefined) {
-      const legacyRoll = nullableNumber(c.initiativeRoll);
-      c.initiative = legacyRoll == null ? null : legacyRoll + (Number(c.initiativeBonus) || 0);
-    } else c.initiative = nullableNumber(c.initiative);
-  } else c.initiative = null;
-  delete c.initiativeRoll;
+  c.initiativeBonus = nullableNumber(c.initiativeBonus);
+  if (isEncounter) c.initiative = nullableNumber(c.initiative);
+  else delete c.initiative;
   if (c.tempHp === undefined) c.tempHp = 0;
   if (c.notes === undefined) c.notes = '';
   if (c.creatureType === undefined) c.creatureType = '';
