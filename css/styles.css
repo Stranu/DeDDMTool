@@ -218,6 +218,8 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .list-linkitem.quick-add-item { min-height: 44px; }
 .list-linkitem.archive-item { flex-wrap: wrap; }
 .list-linkitem .grow { cursor: pointer; }
+.list-linkitem.row-clickable { cursor: pointer; }
+.list-linkitem.row-clickable:hover { border-color: var(--accent); }
 .source-name { display: flex; flex-direction: column; min-width: 0; }
 .source-initiative { display: block; font-size: 11px; margin-top: 2px; }
 .list-linkitem.source-present { border-color: var(--accent-2); background: rgba(201,162,75,.08); }

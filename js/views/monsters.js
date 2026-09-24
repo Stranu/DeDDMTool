@@ -118,7 +118,11 @@ export function renderMonsters(root, api) {
   }
 
   function entryCard(entry) {
-    const row = el('article', { class: 'list-linkitem archive-item' });
+    const row = el('article', { class: 'list-linkitem archive-item row-clickable' });
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('button, input, label, select')) return;
+      openArchiveDrawer(entry, api, 'monsters');
+    });
     const meta = [];
     meta.push(KIND_LABELS[entry.kind] || 'Mostro');
     if (entry.creatureType) meta.push(entry.creatureType);

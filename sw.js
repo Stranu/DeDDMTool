@@ -1,6 +1,6 @@
 // Service worker: offline-first cache dei soli asset statici dell'app.
 // I dati utente (condizioni/magie importate, iniziativa) NON stanno qui: vivono in IndexedDB.
-const CACHE = 'dm-toolkit-v21';
+const CACHE = 'dm-toolkit-v22';
 const ASSETS = [
   './',
   './index.html',

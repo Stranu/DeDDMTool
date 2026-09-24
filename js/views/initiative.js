@@ -203,6 +203,7 @@ function openCombatantDrawer(c, api, options = {}) {
   const { state } = api;
   const body = el('div', {});
   const saveAndRefresh = () => {
+    if (options.draft) return;
     if (options.shared) syncRosterMemberToEncounter(c, api);
     else syncEncounterToRoster(c, api);
     api.save();
@@ -215,7 +216,7 @@ function openCombatantDrawer(c, api, options = {}) {
   ]));
 
   const stats = el('div', { class: 'stat-grid' });
-  const initiativeFields = options.shared
+  const initiativeFields = options.shared || options.draft
     ? [statField('Bonus iniziativa', c.initiativeBonus, (v) => { c.initiativeBonus = nullableNumber(v); saveAndRefresh(); })]
     : [statField('Iniziativa totale', c.initiative, (v) => { c.initiative = nullableNumber(v); saveAndRefresh(); })];
   stats.append(
@@ -226,7 +227,7 @@ function openCombatantDrawer(c, api, options = {}) {
     ...initiativeFields
   );
   body.appendChild(stats);
-  if (!options.shared) body.appendChild(readOnlyField('Bonus iniziativa', formatBonus(c.initiativeBonus)));
+  if (!options.shared && !options.draft) body.appendChild(readOnlyField('Bonus iniziativa', formatBonus(c.initiativeBonus)));
   body.appendChild(el('div', { class: 'field', style: 'margin-top:12px' }, [
     el('label', { text: 'Note / attacchi / capacità' }),
     textareaField(c.notes, (value) => { c.notes = value; saveAndRefresh(); }, 'es. Multiattacco, morso +5, danni 1d6+3')
@@ -235,31 +236,44 @@ function openCombatantDrawer(c, api, options = {}) {
   if (state.conditions.length) body.appendChild(conditionSection(c, api, saveAndRefresh));
   if (state.spells.length) body.appendChild(spellSection(c, api, saveAndRefresh));
 
-  const remove = el('button', {
-    class: 'btn danger block', style: 'margin-top:20px',
-    html: options.shared
-      ? ICON.trash + '<span>Rimuovi da PG/Alleati</span>'
-      : ICON.trash + '<span>Rimuovi dall’iniziativa</span>'
-  });
-  remove.addEventListener('click', () => {
-    if (options.shared) {
-      if (!confirm(`Rimuovere "${c.name}" da PG/Alleati? Le copie già presenti nei combattimenti resteranno utilizzabili.`)) return;
-      const collection = state.roster.pcs.includes(c) ? state.roster.pcs : state.roster.allies;
-      const index = collection.indexOf(c);
-      if (index >= 0) collection.splice(index, 1);
-      for (const combatant of state.encounter.combatants) {
-        if (combatant.rosterId === c.id) delete combatant.rosterId;
+  if (options.draft) {
+    const add = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:20px', html: ICON.plus + '<span>Aggiungi all’iniziativa</span>' });
+    add.addEventListener('click', () => {
+      const name = c.name.trim();
+      if (!name) { api.toast('Il nome del Mostro/PNG è obbligatorio.'); return; }
+      c.name = uniqueEncounterName(api.state.encounter.combatants, name);
+      addToEncounter(api, c);
+      api.closeDrawer();
+      api.refresh('initiative');
+    });
+    body.appendChild(add);
+  } else {
+    const remove = el('button', {
+      class: 'btn danger block', style: 'margin-top:20px',
+      html: options.shared
+        ? ICON.trash + '<span>Rimuovi da PG/Alleati</span>'
+        : ICON.trash + '<span>Rimuovi dall’iniziativa</span>'
+    });
+    remove.addEventListener('click', () => {
+      if (options.shared) {
+        if (!confirm(`Rimuovere "${c.name}" da PG/Alleati? Le copie già presenti nei combattimenti resteranno utilizzabili.`)) return;
+        const collection = state.roster.pcs.includes(c) ? state.roster.pcs : state.roster.allies;
+        const index = collection.indexOf(c);
+        if (index >= 0) collection.splice(index, 1);
+        for (const combatant of state.encounter.combatants) {
+          if (combatant.rosterId === c.id) delete combatant.rosterId;
+        }
+      } else {
+        if (!confirm(`Rimuovere "${c.name}" dall’iniziativa? I dati della scheda archivio/roster non verranno modificati.`)) return;
+        state.encounter.combatants = state.encounter.combatants.filter((item) => item.id !== c.id);
+        if (state.encounter.activeId === c.id) state.encounter.activeId = null;
       }
-    } else {
-      if (!confirm(`Rimuovere "${c.name}" dall’iniziativa? I dati della scheda archivio/roster non verranno modificati.`)) return;
-      state.encounter.combatants = state.encounter.combatants.filter((item) => item.id !== c.id);
-      if (state.encounter.activeId === c.id) state.encounter.activeId = null;
-    }
-    api.save();
-    api.closeDrawer();
-    api.refresh('initiative');
-  });
-  body.appendChild(remove);
+      api.save();
+      api.closeDrawer();
+      api.refresh('initiative');
+    });
+    body.appendChild(remove);
+  }
 
   api.openDrawer(c.name || 'Dettagli combattente', body);
 }
@@ -424,11 +438,8 @@ function openAddMenu(api) {
     event.preventDefault();
     const value = name.value.trim();
     if (!value) return;
-    const combatant = makeCombatant(value, 'monster');
-    combatant.name = uniqueEncounterName(api.state.encounter.combatants, combatant.name);
-    addToEncounter(api, combatant);
-    api.closeDrawer();
-    api.refresh('initiative');
+    const combatant = makeCombatant(uniqueEncounterName(api.state.encounter.combatants, value), 'monster');
+    openCombatantDrawer(combatant, api, { draft: true });
   });
   body.appendChild(form);
 
@@ -447,7 +458,11 @@ function openAddMenu(api) {
       return;
     }
     for (const item of matches) {
-      const row = el('div', { class: 'list-linkitem quick-add-item' });
+      const row = el('div', { class: 'list-linkitem quick-add-item row-clickable' });
+      row.addEventListener('click', (event) => {
+        if (event.target.closest('button, input, label, select')) return;
+        openArchiveReadOnly(item, api);
+      });
       const nameButton = el('button', { class: 'grow quick-sheet-name', type: 'button', title: 'Visualizza scheda' }, [
         el('strong', { text: item.name }),
         el('span', { class: 'muted source-initiative', text: `Bonus iniziativa: ${formatBonus(item.initiativeBonus)}` })
@@ -557,9 +572,13 @@ function openRoster(api) {
     if (!collection.length) return;
     lists.appendChild(el('div', { class: 'mini-title', text: title }));
     for (const item of collection) {
-      const row = el('div', { class: 'list-linkitem' });
+      const row = el('div', { class: 'list-linkitem row-clickable' });
+      row.addEventListener('click', (event) => {
+        if (event.target.closest('button, input, label, select')) return;
+        openCombatantDrawer(item, api, { shared: true });
+      });
       const name = sourceName(item.name, item.initiativeBonus, 'Apri e modifica scheda');
-      name.addEventListener('click', () => openCombatantDrawer(item, api, { shared: true }));
+      name.addEventListener('click', (event) => { event.stopPropagation(); openCombatantDrawer(item, api, { shared: true }); });
       row.append(name);
       const add = el('button', { class: 'chip on', type: 'button', text: 'Iniziativa' });
       add.addEventListener('click', () => {
