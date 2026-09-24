@@ -332,6 +332,16 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .spell-level-group { margin-top: 14px; }
 .spell-level-heading { padding: 7px 0; border-bottom: 1px solid var(--border); }
 .spell-level-heading .badge { text-align: center; }
+.spell-slots-editor { margin-top: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(138,92,246,.06); }
+.spell-slot-config { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 5px 0; border-top: 1px solid var(--border); }
+.spell-slot-config:first-of-type { border-top: 0; }
+.spell-slot-config .slot-used-box { margin-left: auto; }
+.slot-total-control { display: inline-flex; align-items: center; gap: 5px; color: var(--text-dim); font-size: 11px; }
+.slot-controls { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; }
+.slot-adjust { width: 28px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; }
+.slot-adjust:disabled { opacity: .4; cursor: not-allowed; }
+.spellbook-meta { display: block; color: var(--text-dim); font-size: 11px; font-weight: 400; }
+.spellcasting-stats { grid-template-columns: repeat(3, 1fr); margin-top: 8px; }
 .slot-input { width: 58px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .spellbook-row { min-height: 44px; }
 .inventory-category { margin-top: 16px; }
@@ -373,6 +383,9 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 @media (max-width: 600px) {
   .player-sheet-header { padding: 9px 8px; }
   .player-sheet-header .btn { padding: 8px 9px; font-size: 12px; }
+  .spellcasting-stats { grid-template-columns: 1fr; }
+  .spell-slot-config { flex-wrap: wrap; }
+  .spell-slot-config .slot-used-box { margin-left: auto; }
   .player-summary-bar { grid-template-columns: repeat(2, 1fr); }
   .ability-sheet-grid { grid-template-columns: repeat(2, 1fr); }
   .senses-grid { grid-template-columns: 1fr; }

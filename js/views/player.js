@@ -41,7 +41,7 @@ export function createPlayerCharacter(name = 'Nuovo personaggio') {
     perceptionProficient: false, perceptionExpertise: false, notes: '',
     inventory: [],
     attunement: { max: 3, itemIds: [] },
-    spellbook: { knownSpellIds: [], preparedSpellIds: [], slots: createSpellSlots() }
+    spellbook: { castingAbility: '', knownSpellIds: [], preparedSpellIds: [], slots: createSpellSlots() }
   };
 }
 
@@ -49,6 +49,32 @@ function createSpellSlots() {
   const slots = {};
   for (let level = 1; level <= 9; level += 1) slots[level] = { max: 0, used: 0 };
   return slots;
+}
+
+function normalizeSlotValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.floor(number)) : 0;
+}
+
+function isAbilityKey(value) {
+  return ABILITIES.some(([key]) => key === value);
+}
+
+function abilityLabel(key) {
+  return ABILITIES.find(([value]) => value === key)?.[1] || 'Non impostata';
+}
+
+function spellValue(value, signedValue = false) {
+  if (value == null) return '—';
+  return signedValue ? signed(value) : String(value);
+}
+
+function requiresConcentration(spell) {
+  return /\b(?:concentrazione|concentration)\b/i.test(spell.duration || '');
+}
+
+function spellSummaryMetadata(spell) {
+  return [spell.castingTime, spell.range, requiresConcentration(spell) ? 'C' : ''].filter(Boolean).join(' · ') || 'Dettagli non disponibili';
 }
 
 function normalizeCharacter(character) {
@@ -74,9 +100,19 @@ function normalizeCharacter(character) {
   character.attunement.max = Number(character.attunement.max) || 3;
   character.attunement.itemIds = Array.isArray(character.attunement.itemIds) ? character.attunement.itemIds : [];
   character.spellbook = character.spellbook && typeof character.spellbook === 'object' ? character.spellbook : {};
+  character.spellbook.castingAbility = isAbilityKey(character.spellbook.castingAbility) ? character.spellbook.castingAbility : '';
   character.spellbook.knownSpellIds = Array.isArray(character.spellbook.knownSpellIds) ? character.spellbook.knownSpellIds : [];
   character.spellbook.preparedSpellIds = Array.isArray(character.spellbook.preparedSpellIds) ? character.spellbook.preparedSpellIds : [];
-  character.spellbook.slots = character.spellbook.slots && typeof character.spellbook.slots === 'object' ? character.spellbook.slots : createSpellSlots();
+  const storedSlots = character.spellbook.slots && typeof character.spellbook.slots === 'object' ? character.spellbook.slots : {};
+  character.spellbook.slots = createSpellSlots();
+  for (let level = 1; level <= 9; level += 1) {
+    const stored = storedSlots[level] && typeof storedSlots[level] === 'object' ? storedSlots[level] : {};
+    const max = normalizeSlotValue(stored.max);
+    character.spellbook.slots[level] = {
+      max,
+      used: Math.min(max, normalizeSlotValue(stored.used))
+    };
+  }
   return character;
 }
 
@@ -118,9 +154,15 @@ export function calculateDerived(character) {
     key,
     mod(ability) + (character.skillExpertise.includes(key) ? proficiency * 2 : character.skillProficiencies.includes(key) ? proficiency : 0) + skillBonus
   ]));
+  const modifiers = Object.fromEntries(ABILITIES.map(([key]) => [key, mod(key)]));
+  const castingAbility = isAbilityKey(character.spellbook?.castingAbility) ? character.spellbook.castingAbility : '';
+  const spellcastingModifier = castingAbility ? modifiers[castingAbility] : null;
   return {
-    modifiers: Object.fromEntries(ABILITIES.map(([key]) => [key, mod(key)])),
+    modifiers,
     proficiency,
+    spellcastingModifier,
+    spellSaveDc: spellcastingModifier == null ? null : 8 + proficiency + spellcastingModifier,
+    spellAttackBonus: spellcastingModifier == null ? null : proficiency + spellcastingModifier,
     savingThrows,
     skills,
     savingThrowBonus,
@@ -388,9 +430,14 @@ function openCharacterEditor(character, api, root, isNew, options = {}) {
   const species = textInput('Specie', character.species, 'es. Elfo');
   const background = textInput('Background', character.background, 'es. Sapiente');
   const alignment = textInput('Allineamento', character.alignment, 'Opzionale');
+  const castingAbility = el('select', { class: 'input' });
+  castingAbility.appendChild(el('option', { value: '', text: 'Seleziona una caratteristica' }));
+  for (const [key, label] of ABILITIES) castingAbility.appendChild(el('option', { value: key, text: label }));
+  castingAbility.value = character.spellbook.castingAbility;
+  castingAbility.addEventListener('change', () => { character.spellbook.castingAbility = castingAbility.value; updateDerived(); });
   const color = el('input', { class: 'input color-input', type: 'color', value: character.color });
   color.addEventListener('input', () => { character.color = color.value; save(); });
-  body.append(name.field, playerName.field, level.field, classes.field, species.field, background.field, alignment.field, field('Colore identificativo', color));
+  body.append(name.field, playerName.field, level.field, classes.field, species.field, background.field, alignment.field, field('Caratteristica da incantatore', castingAbility), field('Colore identificativo', color));
   for (const [control, key] of [[name.input, 'name'], [playerName.input, 'playerName'], [classes.input, 'classes'], [species.input, 'species'], [background.input, 'background'], [alignment.input, 'alignment']]) {
     control.addEventListener('input', () => { character[key] = control.value; save(); });
   }
@@ -408,7 +455,15 @@ function openCharacterEditor(character, api, root, isNew, options = {}) {
   const updateDerived = () => {
     const d = calculateDerived(character);
     derivedValues.innerHTML = '';
-    derivedValues.append(derivedStat('Bonus competenza', `+${d.proficiency}`), derivedStat('CA calcolata', d.armorClass), derivedStat('Iniziativa', signed(d.initiative)), derivedStat('Percezione passiva', d.passivePerception));
+    derivedValues.append(
+      derivedStat('Bonus competenza', `+${d.proficiency}`),
+      derivedStat('CA calcolata', d.armorClass),
+      derivedStat('Iniziativa', signed(d.initiative)),
+      derivedStat('Percezione passiva', d.passivePerception),
+      derivedStat('Caratteristica incantatore', abilityLabel(character.spellbook.castingAbility)),
+      derivedStat('CD TS incantesimi', spellValue(d.spellSaveDc)),
+      derivedStat('Bonus txc incantesimi', spellValue(d.spellAttackBonus, true))
+    );
     save();
   };
   derivedBox.append(el('div', { class: 'mini-title', text: 'Calcolati' }), derivedValues);
@@ -570,6 +625,14 @@ function spellbookSection(character, api, root, options = { editable: true }) {
   const editable = options.editable !== false;
   const section = el('section', { class: 'player-section' });
   section.appendChild(el('div', { class: 'mini-title', text: `Magie assegnate (${character.spellbook.knownSpellIds.length})` }));
+
+  const derived = calculateDerived(character);
+  section.appendChild(el('div', { class: 'derived-grid spellcasting-stats' }, [
+    derivedStat('Caratteristica incantatore', abilityLabel(character.spellbook.castingAbility)),
+    derivedStat('CD TS incantesimi', spellValue(derived.spellSaveDc)),
+    derivedStat('Bonus txc incantesimi', spellValue(derived.spellAttackBonus, true))
+  ]));
+
   const grouped = new Map();
   for (const spellId of character.spellbook.knownSpellIds) {
     const spell = api.state.spells.find((item) => item.id === spellId);
@@ -578,44 +641,80 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     if (!grouped.has(level)) grouped.set(level, []);
     grouped.get(level).push(spell);
   }
+
+  const refreshSlotViews = (level) => {
+    const slots = character.spellbook.slots[level];
+    section.querySelectorAll(`[data-slot-level="${level}"]`).forEach((container) => {
+      if (container.classList.contains('spell-level-group')) updateSlotGroup(container, slots);
+      else {
+        const slot = container.querySelector('.slot-used-box');
+        if (slot) slot.textContent = `${slots.used}/${slots.max}`;
+      }
+    });
+  };
+
+  if (editable) {
+    const slotsSection = el('section', { class: 'spell-slots-editor' });
+    slotsSection.appendChild(el('div', { class: 'mini-title', text: 'Slot totali per livello' }));
+    for (let level = 1; level <= 9; level += 1) {
+      const slots = character.spellbook.slots[level];
+      const max = el('input', {
+        class: 'slot-input', type: 'number', min: '0', value: slots.max,
+        'aria-label': `Slot totali livello ${level}`
+      });
+      max.addEventListener('change', () => {
+        slots.max = normalizeSlotValue(max.value);
+        slots.used = Math.min(slots.used, slots.max);
+        max.value = slots.max;
+        refreshSlotViews(level);
+        api.save();
+      });
+      slotsSection.appendChild(el('div', { class: 'spell-slot-config', dataset: { slotLevel: String(level) } }, [
+        el('strong', { text: `${level}° livello` }),
+        el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot totali' }),
+        el('label', { class: 'slot-total-control' }, [document.createTextNode('Totali'), max])
+      ]));
+    }
+    section.appendChild(slotsSection);
+  }
+
   if (!grouped.size) {
     section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessuna magia assegnata. Usa Assegna nella sezione Magie.' }));
     return section;
   }
+
   for (const level of [...grouped.keys()].sort((a, b) => a - b)) {
-    const group = el('section', { class: 'spell-level-group' });
-    const slots = character.spellbook.slots[level] || { max: 0, used: 0 };
-    character.spellbook.slots[level] = slots;
+    const group = el('section', { class: 'spell-level-group', dataset: { slotLevel: String(level) } });
+    const slots = level > 0 ? character.spellbook.slots[level] : null;
     const heading = el('div', { class: 'row spell-level-heading' }, [el('strong', { text: level === 0 ? 'Trucchetti' : `${level}° livello` })]);
     if (level > 0) {
-      const slotText = el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot massimi' });
+      const slotText = el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot totali' });
       if (editable) {
+        heading.appendChild(slotText);
+      } else {
         const minus = el('button', { class: 'slot-adjust', type: 'button', text: '−', 'aria-label': `Riduci slot usati livello ${level}` });
         const plus = el('button', { class: 'slot-adjust', type: 'button', text: '+', 'aria-label': `Aumenta slot usati livello ${level}` });
-        const updateSlots = () => {
-          slots.used = Math.max(0, Math.min(slots.used, slots.max));
-          slotText.textContent = `${slots.used}/${slots.max}`;
-          minus.disabled = slots.used <= 0;
-          plus.disabled = slots.used >= slots.max;
-          group.querySelectorAll('.spell-launch').forEach((button) => {
-            button.disabled = slots.used >= slots.max;
-            button.textContent = slots.used < slots.max ? 'Lancia' : 'Scarico';
-          });
-        };
-        minus.addEventListener('click', () => { slots.used -= 1; updateSlots(); api.save(); });
-        plus.addEventListener('click', () => { slots.used += 1; updateSlots(); api.save(); });
+        minus.addEventListener('click', () => {
+          slots.used = Math.max(0, slots.used - 1);
+          updateSlotGroup(group, slots);
+          api.save();
+        });
+        plus.addEventListener('click', () => {
+          slots.used = Math.min(slots.max, slots.used + 1);
+          updateSlotGroup(group, slots);
+          api.save();
+        });
         heading.appendChild(el('div', { class: 'slot-controls' }, [minus, slotText, plus]));
-        const max = el('input', { class: 'slot-input', type: 'number', min: '0', value: slots.max, 'aria-label': `Slot massimi livello ${level}` });
-        max.addEventListener('change', () => { slots.max = Math.max(0, Number(max.value) || 0); updateSlots(); api.save(); });
-        heading.appendChild(max);
-      } else {
-        heading.appendChild(el('span', { class: 'badge', text: `Slot: ${slots.used}/${slots.max}` }));
       }
     }
     group.appendChild(heading);
     for (const spell of grouped.get(level).sort((a, b) => a.name.localeCompare(b.name, 'it'))) {
       const row = el('div', { class: 'inventory-row spellbook-row' });
-      const name = el('button', { class: 'inventory-name', type: 'button' }, [el('strong', { text: spell.name }), spell.favorite ? el('span', { class: 'manual-spell-marker', text: ' ★ preferita' }) : null]);
+      const name = el('button', { class: 'inventory-name', type: 'button' }, [
+        el('strong', { text: spell.name }),
+        el('span', { class: 'spellbook-meta', text: spellSummaryMetadata(spell), title: 'Tempo di lancio · gittata · C = concentrazione' }),
+        spell.favorite ? el('span', { class: 'manual-spell-marker', text: ' ★ preferita' }) : null
+      ]);
       name.addEventListener('click', () => api.openDrawer(spell.name, spellDetails(spell)));
       row.appendChild(name);
       if (editable) {
@@ -626,12 +725,11 @@ function spellbookSection(character, api, root, options = { editable: true }) {
       } else if (character.spellbook.preparedSpellIds.includes(spell.id)) {
         row.appendChild(el('span', { class: 'badge', text: 'Preparata' }));
       }
-      if (level > 0) {
+      if (level > 0 && !editable) {
         const launch = el('button', { class: 'chip on spell-launch', type: 'button', text: slots.used < slots.max ? 'Lancia' : 'Scarico' });
         launch.disabled = slots.used >= slots.max;
         launch.addEventListener('click', () => {
-          if (slots.used >= slots.max) return;
-          slots.used += 1;
+          if (!consumeSpellSlot(character, level)) return;
           api.save();
           updateSlotGroup(group, slots);
         });
@@ -639,9 +737,20 @@ function spellbookSection(character, api, root, options = { editable: true }) {
       }
       group.appendChild(row);
     }
+    if (level > 0 && !editable) updateSlotGroup(group, slots);
     section.appendChild(group);
   }
   return section;
+}
+
+function consumeSpellSlot(character, level) {
+  const slots = character.spellbook?.slots?.[level];
+  if (!slots || level <= 0) return false;
+  slots.max = normalizeSlotValue(slots.max);
+  slots.used = Math.min(slots.max, normalizeSlotValue(slots.used));
+  if (slots.used >= slots.max) return false;
+  slots.used += 1;
+  return true;
 }
 
 function updateSlotGroup(group, slots) {
