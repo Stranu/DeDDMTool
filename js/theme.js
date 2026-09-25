@@ -36,6 +36,24 @@ export const THEMES = [
     name: 'Pergamena Scura',
     description: 'Cuoio e ottone',
     swatch: { bg: '#191510', accent: '#b5842f', accent2: '#8a5a2b' }
+  },
+  {
+    id: 'dragonblood',
+    name: 'Sangue di Drago',
+    description: 'Nero e cremisi acceso',
+    swatch: { bg: '#160b0c', accent: '#e01f3d', accent2: '#f0a92e' }
+  },
+  {
+    id: 'neon',
+    name: 'Neon Arcano',
+    description: 'Magenta e ciano vivaci',
+    swatch: { bg: '#0d0a18', accent: '#ff3fb4', accent2: '#22e6d6' }
+  },
+  {
+    id: 'high-contrast',
+    name: 'Alto Contrasto',
+    description: 'Massima leggibilità',
+    swatch: { bg: '#000000', accent: '#ffd400', accent2: '#4fd0ff' }
   }
 ];
 

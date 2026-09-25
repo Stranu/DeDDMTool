@@ -197,6 +197,119 @@
   --sheet-danger-btn: #cf5240;
 }
 
+:root[data-theme="dragonblood"] {
+  --bg: #160b0c;
+  --bg-elev: #21100f;
+  --bg-elev-2: #2d1614;
+  --border: #4a201d;
+  --text: #f6e8e3;
+  --text-dim: #c39a92;
+  --accent: #e01f3d;
+  --accent-rgb: 224, 31, 61;
+  --accent-2: #f0a92e;
+  --accent-2-rgb: 240, 169, 46;
+  --danger: #ff5a5a;
+  --danger-rgb: 255, 90, 90;
+  --ok: #6fae4f;
+  --ok-rgb: 111, 174, 79;
+  --active-glow: #ff4d66;
+  --active-glow-rgb: 255, 77, 102;
+  --theme-color: #16090a;
+  --header-bg: linear-gradient(180deg, #2a1210, #16090a);
+  --header-bg-solid: rgba(22, 9, 10, 0.85);
+  --tabbar-bg: rgba(22, 9, 10, 0.88);
+  --tabbar-bg-solid: #16090a;
+  --btn-primary: linear-gradient(180deg, #f0304e, #c01330);
+  --btn-primary-border: #c01330;
+  --btn-primary-text: #fff;
+  --btn-accent: linear-gradient(180deg, #f6bb47, #d68f1c);
+  --btn-accent-border: #d68f1c;
+  --btn-accent-text: #2a1a03;
+  --sheet-bg: #130808;
+  --sheet-panel: #21100f;
+  --sheet-bar: #2d1614;
+  --sheet-header: #21100f;
+  --sheet-border: #4a201d;
+  --sheet-border-2: #5f2a26;
+  --sheet-danger-btn: #e01f3d;
+}
+
+:root[data-theme="neon"] {
+  --bg: #0d0a18;
+  --bg-elev: #161228;
+  --bg-elev-2: #201a38;
+  --border: #362c5c;
+  --text: #f2ecff;
+  --text-dim: #a99ecb;
+  --accent: #ff3fb4;
+  --accent-rgb: 255, 63, 180;
+  --accent-2: #22e6d6;
+  --accent-2-rgb: 34, 230, 214;
+  --danger: #ff5470;
+  --danger-rgb: 255, 84, 112;
+  --ok: #3fe08a;
+  --ok-rgb: 63, 224, 138;
+  --active-glow: #ff6ec7;
+  --active-glow-rgb: 255, 110, 199;
+  --theme-color: #0d0a18;
+  --header-bg: linear-gradient(180deg, #1a1330, #0d0a18);
+  --header-bg-solid: rgba(13, 10, 24, 0.85);
+  --tabbar-bg: rgba(13, 10, 24, 0.88);
+  --tabbar-bg-solid: #0d0a18;
+  --btn-primary: linear-gradient(180deg, #ff5cc0, #e01d97);
+  --btn-primary-border: #e01d97;
+  --btn-primary-text: #16041f;
+  --btn-accent: linear-gradient(180deg, #45f0e2, #17c2b4);
+  --btn-accent-border: #17c2b4;
+  --btn-accent-text: #04201d;
+  --sheet-bg: #0b0814;
+  --sheet-panel: #161228;
+  --sheet-bar: #201a38;
+  --sheet-header: #161228;
+  --sheet-border: #362c5c;
+  --sheet-border-2: #473a72;
+  --sheet-danger-btn: #ff3fb4;
+}
+
+/* Alto contrasto: sfondo nero, testo bianco pieno, accenti saturi, bordi netti.
+   Pensato per la massima leggibilità. */
+:root[data-theme="high-contrast"] {
+  --bg: #000000;
+  --bg-elev: #0d0d0d;
+  --bg-elev-2: #1a1a1a;
+  --border: #7a7a7a;
+  --text: #ffffff;
+  --text-dim: #d6d6d6;
+  --accent: #ffd400;
+  --accent-rgb: 255, 212, 0;
+  --accent-2: #4fd0ff;
+  --accent-2-rgb: 79, 208, 255;
+  --danger: #ff5555;
+  --danger-rgb: 255, 85, 85;
+  --ok: #4ade5a;
+  --ok-rgb: 74, 222, 90;
+  --active-glow: #ffd400;
+  --active-glow-rgb: 255, 212, 0;
+  --theme-color: #000000;
+  --header-bg: linear-gradient(180deg, #000, #000);
+  --header-bg-solid: #000000;
+  --tabbar-bg: #000000;
+  --tabbar-bg-solid: #000000;
+  --btn-primary: #ffd400;
+  --btn-primary-border: #ffffff;
+  --btn-primary-text: #000000;
+  --btn-accent: #4fd0ff;
+  --btn-accent-border: #ffffff;
+  --btn-accent-text: #000000;
+  --sheet-bg: #000000;
+  --sheet-panel: #0d0d0d;
+  --sheet-bar: #1a1a1a;
+  --sheet-header: #0d0d0d;
+  --sheet-border: #7a7a7a;
+  --sheet-border-2: #9a9a9a;
+  --sheet-danger-btn: #ff3333;
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; }
 body {
@@ -702,4 +815,29 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 
 @media (min-width: 520px) {
   .theme-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- Rifiniture tema Alto Contrasto ---------- */
+/* Bordi più marcati e focus più evidente per chi ha bisogno di leggibilità elevata. */
+:root[data-theme="high-contrast"] .card,
+:root[data-theme="high-contrast"] .combatant,
+:root[data-theme="high-contrast"] .acc-item,
+:root[data-theme="high-contrast"] .input,
+:root[data-theme="high-contrast"] .btn,
+:root[data-theme="high-contrast"] .chip,
+:root[data-theme="high-contrast"] .list-linkitem {
+  border-width: 2px;
+}
+:root[data-theme="high-contrast"] :focus-visible {
+  outline-width: 3px;
+  outline-offset: 2px;
+}
+:root[data-theme="high-contrast"] .tab.active {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+:root[data-theme="high-contrast"] .combatant.active {
+  background: #1a1a1a;
+  box-shadow: 0 0 0 2px var(--active-glow);
 }
