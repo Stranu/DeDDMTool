@@ -238,16 +238,7 @@ function openCombatantDrawer(c, api, options = {}) {
   if (state.spells.length) body.appendChild(spellSection(c, api, saveAndRefresh));
 
   if (options.draft) {
-    const add = el('button', { class: 'btn primary block', type: 'button', style: 'margin-top:20px', html: ICON.plus + '<span>Aggiungi all’iniziativa</span>' });
-    add.addEventListener('click', () => {
-      const name = c.name.trim();
-      if (!name) { api.toast('Il nome del Mostro/PNG è obbligatorio.'); return; }
-      c.name = uniqueEncounterName(api.state.encounter.combatants, name);
-      addToEncounter(api, c);
-      api.closeDrawer();
-      api.refresh('initiative');
-    });
-    body.appendChild(add);
+    body.appendChild(el('p', { class: 'muted', style: 'margin-top:18px; font-size:13px', text: 'Tocca ✓ in alto per aggiungere all’iniziativa, oppure ← per annullare.' }));
   } else {
     const remove = el('button', {
       class: 'btn danger block', style: 'margin-top:20px',
@@ -276,10 +267,22 @@ function openCombatantDrawer(c, api, options = {}) {
     body.appendChild(remove);
   }
 
+  const drawerOptions = options.draft
+    ? {
+        onConfirm: () => {
+          const name = (c.name || '').trim();
+          if (!name) { api.toast('Il nome del Mostro/PNG è obbligatorio.'); return; }
+          c.name = uniqueEncounterName(api.state.encounter.combatants, name);
+          addToEncounter(api, c);
+          api.closeDrawer();
+          api.refresh('initiative');
+        }
+      }
+    : {};
   api.openDrawer(
     c.name || (options.draft ? 'Nuovo Mostro/PNG temporaneo' : 'Dettagli combattente'),
     body,
-    options.draft ? { closeMode: 'cancel' } : {}
+    drawerOptions
   );
 }
 

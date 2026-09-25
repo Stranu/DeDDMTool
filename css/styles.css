@@ -55,8 +55,6 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 }
 .icon-btn:active { background: var(--bg-elev-2); }
 .icon-btn:disabled { opacity: .45; cursor: wait; }
-.icon-btn svg[hidden] { display: none; }
-#drawer-close .ic-cancel { color: var(--text-dim); }
 
 /* ---------- Tabbar ---------- */
 .tabbar {

@@ -114,44 +114,26 @@ function renderDrawer(title, contentNode) {
   $('#drawer').setAttribute('aria-hidden', 'false');
 }
 
-// Modalità del pulsante di chiusura del drawer corrente.
-// 'confirm' (default): la V salva e chiude, coerente con tutti i drawer di modifica.
-// 'cancel': mostra una X e chiude senza salvare, per i drawer dove la conferma
-//           avviene tramite un pulsante dedicato (es. bozza "+ Mostri").
-let drawerCloseMode = 'confirm';
-
-function applyDrawerCloseMode(mode) {
-  drawerCloseMode = mode === 'cancel' ? 'cancel' : 'confirm';
-  const btn = $('#drawer-close');
-  const cancel = drawerCloseMode === 'cancel';
-  const confirmIcon = btn.querySelector('.ic-confirm');
-  const cancelIcon = btn.querySelector('.ic-cancel');
-  if (confirmIcon) confirmIcon.hidden = cancel;
-  if (cancelIcon) cancelIcon.hidden = !cancel;
-  const label = cancel ? 'Chiudi senza aggiungere' : 'Conferma e chiudi';
-  btn.setAttribute('aria-label', label);
-  btn.title = label;
-}
-
-function onDrawerCloseClick() {
-  if (drawerCloseMode === 'cancel') closeDrawer();
-  else confirmAndCloseDrawer();
-}
+// Azione di conferma del drawer corrente (pulsante V in alto a destra).
+// Se null la V esegue il comportamento standard: salva e chiude.
+// Un drawer può impostarla per gestire la conferma in modo proprio
+// (es. bozza "+ Mostri": la V valida il nome e aggiunge all'iniziativa).
+let drawerConfirm = null;
 
 function openDrawer(title, contentNode, options = {}) {
   const body = $('#drawer-body');
   if (!options.replace && !$('#drawer').hidden && body.firstElementChild) {
-    drawerHistory.push({ title: $('#drawer-title').textContent, contentNode: body.firstElementChild, closeMode: drawerCloseMode });
+    drawerHistory.push({ title: $('#drawer-title').textContent, contentNode: body.firstElementChild, confirm: drawerConfirm });
   }
-  applyDrawerCloseMode(options.closeMode);
+  drawerConfirm = typeof options.onConfirm === 'function' ? options.onConfirm : null;
   renderDrawer(title, contentNode);
 }
 function drawerBack() {
   const previous = drawerHistory.pop();
   if (previous) {
-    applyDrawerCloseMode(previous.closeMode);
+    drawerConfirm = previous.confirm || null;
     renderDrawer(previous.title, previous.contentNode);
-  } else onDrawerCloseClick();
+  } else closeDrawer();
 }
 
 let drawerClosing = false;
@@ -160,19 +142,27 @@ async function confirmAndCloseDrawer() {
   drawerClosing = true;
   const closeButton = $('#drawer-close');
   closeButton.disabled = true;
-  const saved = await save();
-  if (saved) closeDrawer();
-  closeButton.disabled = false;
-  drawerClosing = false;
+  try {
+    if (drawerConfirm) {
+      // La callback si occupa di validare, aggiungere/salvare e chiudere.
+      await drawerConfirm();
+    } else {
+      const saved = await save();
+      if (saved) closeDrawer();
+    }
+  } finally {
+    closeButton.disabled = false;
+    drawerClosing = false;
+  }
 }
 
 function closeDrawer() {
   drawerHistory = [];
+  drawerConfirm = null;
   $('#drawer').setAttribute('aria-hidden', 'true');
   $('#drawer').hidden = true;
   $('#drawer-backdrop').hidden = true;
   $('#drawer-back').hidden = true;
-  applyDrawerCloseMode('confirm');
 }
 
 function setMode(mode) {
@@ -246,7 +236,7 @@ async function boot() {
   $$('.tab').forEach((t) => t.addEventListener('click', () => goTo(t.dataset.view)));
   $('#settings-btn').addEventListener('click', () => goTo('settings'));
   $('#menu-toggle').addEventListener('click', openModeMenu);
-  $('#drawer-close').addEventListener('click', onDrawerCloseClick);
+  $('#drawer-close').addEventListener('click', confirmAndCloseDrawer);
   $('#drawer-back').addEventListener('click', drawerBack);
   $('#drawer-backdrop').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
