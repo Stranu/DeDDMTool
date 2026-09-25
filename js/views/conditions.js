@@ -52,7 +52,7 @@ export function renderConditions(root, api) {
   function emptyState() {
     return el('div', { class: 'empty' }, [
       el('div', { html: ICON.sparkle }),
-      el('div', { text: 'Nessuna condizione importata.' }),
+      el('strong', { text: 'Nessuna condizione importata.' }),
       el('div', { class: 'muted', text: 'Importa un CSV dalla scheda Impostazioni.' })
     ]);
   }

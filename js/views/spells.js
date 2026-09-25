@@ -17,7 +17,7 @@ export function renderSpells(root, api) {
   if (!state.spells.length) {
     root.appendChild(el('div', { class: 'empty' }, [
       el('div', { html: ICON.sparkle }),
-      el('div', { text: 'Nessuna magia importata o creata.' }),
+      el('strong', { text: 'Nessuna magia importata o creata.' }),
       el('div', { class: 'muted', text: 'Importa un CSV oppure crea una magia manuale.' })
     ]));
     return;

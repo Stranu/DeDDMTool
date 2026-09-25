@@ -82,7 +82,8 @@ export function renderInitiative(root, api) {
       sub.appendChild(hp);
       if (hpMax) {
         const bar = el('span', { class: 'hp-bar' });
-        bar.appendChild(el('i', {}));
+        const hpLevel = hpPercent <= 25 ? 'low' : hpPercent <= 50 ? 'mid' : '';
+        bar.appendChild(el('i', hpLevel ? { class: hpLevel } : {}));
         bar.firstChild.style.width = `${hpPercent}%`;
         sub.appendChild(bar);
       }
@@ -136,7 +137,7 @@ export function renderInitiative(root, api) {
   function emptyEncounter() {
     return el('div', { class: 'empty' }, [
       el('div', { html: ICON.play }),
-      el('div', { text: 'Nessun combattente nell’iniziativa.' }),
+      el('strong', { text: 'Nessun combattente nell’iniziativa.' }),
       el('div', { class: 'muted', text: 'Usa + Mostri per inserire una scheda Mostri/PNG o PG/Alleati per i ricorrenti.' })
     ]);
   }

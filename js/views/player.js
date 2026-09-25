@@ -255,7 +255,7 @@ export function renderPlayer(root, api) {
   if (!state.player.characters.length) {
     root.appendChild(el('div', { class: 'empty' }, [
       el('div', { html: ICON.sparkle }),
-      el('div', { text: 'Nessun personaggio Player.' }),
+      el('strong', { text: 'Nessun personaggio Player.' }),
       el('div', { class: 'muted', text: 'Crea la prima scheda personaggio per iniziare.' })
     ]));
     return;
