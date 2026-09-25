@@ -276,7 +276,11 @@ function openCombatantDrawer(c, api, options = {}) {
     body.appendChild(remove);
   }
 
-  api.openDrawer(c.name || 'Dettagli combattente', body);
+  api.openDrawer(
+    c.name || (options.draft ? 'Nuovo Mostro/PNG temporaneo' : 'Dettagli combattente'),
+    body,
+    options.draft ? { closeMode: 'cancel' } : {}
+  );
 }
 
 function conditionSection(c, api, onChange = () => api.save()) {
