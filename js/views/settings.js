@@ -2,6 +2,7 @@
 import { el, ICON, escapeHtml } from '../util.js';
 import { parseConditions, parseSpells } from '../csv.js';
 import { normalizePlayerState } from './player.js';
+import { THEMES } from '../theme.js';
 import {
   BACKUP_CATEGORIES,
   categoryLabel,
@@ -13,6 +14,10 @@ import {
 export function renderSettings(root, api) {
   const { state, db, toast, save, reloadDatasets, refresh, updateTabs } = api;
   root.innerHTML = '';
+
+  root.appendChild(el('div', { class: 'section-title', text: 'Tema' }));
+  root.appendChild(themeSection());
+  root.appendChild(el('hr', { class: 'sep' }));
 
   root.appendChild(el('div', { class: 'section-title', text: 'Dati importati' }));
 
@@ -49,10 +54,47 @@ export function renderSettings(root, api) {
   }));
   root.appendChild(help);
 
+  function themeSection() {
+    const grid = el('div', { class: 'theme-grid' });
+    const draw = () => {
+      grid.innerHTML = '';
+      for (const theme of THEMES) {
+        const active = state.theme === theme.id;
+        const card = el('button', {
+          class: `theme-card${active ? ' active' : ''}`,
+          type: 'button',
+          'aria-pressed': active ? 'true' : 'false',
+          title: theme.description
+        });
+        const swatch = el('span', { class: 'theme-swatch', style: `background:${theme.swatch.bg}` }, [
+          el('span', { class: 'theme-dot', style: `background:${theme.swatch.accent}` }),
+          el('span', { class: 'theme-dot', style: `background:${theme.swatch.accent2}` })
+        ]);
+        const label = el('span', { class: 'theme-label' }, [
+          el('strong', { text: theme.name }),
+          el('span', { class: 'muted', text: theme.description })
+        ]);
+        const check = el('span', { class: 'theme-check', html: active ? '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' : '' });
+        card.append(swatch, label, check);
+        card.addEventListener('click', () => {
+          if (state.theme === theme.id) return;
+          api.setTheme(theme.id);
+          toast(`Tema "${theme.name}" applicato`);
+        });
+        grid.appendChild(card);
+      }
+    };
+    draw();
+    return el('div', { class: 'card' }, [
+      el('p', { class: 'muted', style: 'margin:0 0 10px;font-size:13px', text: 'Scegli la combinazione di colori dell’app. La scelta resta salvata sul dispositivo.' }),
+      grid
+    ]);
+  }
+
   function dataCard({ title, count, icon, hint, onImport, onClear }) {
     const present = count > 0;
     const status = present
-      ? el('span', { class: 'badge', style: 'background:rgba(75,191,123,.15);border-color:rgba(75,191,123,.5);color:#8fe6b0', text: `${count} voci` })
+      ? el('span', { class: 'badge', style: 'background:rgba(var(--ok-rgb),.15);border-color:rgba(var(--ok-rgb),.5);color:var(--ok)', text: `${count} voci` })
       : el('span', { class: 'badge', text: 'nessun dato' });
 
     const fileInput = el('input', { type: 'file', accept: '.csv,text/csv', style: 'display:none' });

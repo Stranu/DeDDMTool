@@ -7,6 +7,10 @@ import { renderSpells } from './views/spells.js';
 import { renderSettings } from './views/settings.js';
 import { renderMonsters } from './views/monsters.js';
 import { renderPlayer, renderInventory, normalizePlayerState } from './views/player.js';
+import { applyTheme, initThemeEarly, isValidTheme, DEFAULT_THEME } from './theme.js';
+
+// Applica subito il tema in cache (sincrono) per evitare il flash all'avvio.
+initThemeEarly();
 
 // ---------------- Stato condiviso ----------------
 // encounter: stato del gestore iniziativa (persistito su ogni evento).
@@ -14,6 +18,7 @@ import { renderPlayer, renderInventory, normalizePlayerState } from './views/pla
 // conditions/spells: dataset importati (in memoria, fonte = IndexedDB).
 export const state = {
   mode: 'gm',
+  theme: DEFAULT_THEME,
   player: { activeId: null, characters: [] },
   encounter: { round: 1, activeId: null, combatants: [] },
   roster: { pcs: [], allies: [], archive: [] }, // archive = mostri/PNG riutilizzabili
@@ -52,7 +57,8 @@ export function save() {
           db.kvSet('encounter', state.encounter),
           db.kvSet('roster', state.roster),
           db.kvSet('player', state.player),
-          db.kvSet('mode', state.mode)
+          db.kvSet('mode', state.mode),
+          db.kvSet('theme', state.theme)
         ]);
       } catch (error) {
         success = false;
@@ -71,8 +77,15 @@ export function refresh(view = current) {
   if (views[view]) views[view].render(views[view].el, api);
 }
 
+// Cambia tema: applica al documento, persiste, e ridisegna la vista corrente.
+function setTheme(id) {
+  state.theme = applyTheme(id);
+  save();
+  refresh();
+}
+
 // API passata alle viste per non creare dipendenze circolari sullo stato.
-export const api = { state, save, refresh, openDrawer, closeDrawer, toast, db, reloadDatasets, updateTabs, goTo };
+export const api = { state, save, refresh, openDrawer, closeDrawer, toast, db, reloadDatasets, updateTabs, goTo, setTheme };
 
 // ---------------- Navigazione ----------------
 function goTo(view) {
@@ -219,16 +232,19 @@ export async function reloadDatasets() {
 // ---------------- Bootstrap ----------------
 async function boot() {
   // Carica stato persistito.
-  const [enc, roster, player, mode] = await Promise.all([
+  const [enc, roster, player, mode, theme] = await Promise.all([
     db.kvGet('encounter', null),
     db.kvGet('roster', null),
     db.kvGet('player', null),
-    db.kvGet('mode', null)
+    db.kvGet('mode', null),
+    db.kvGet('theme', null)
   ]);
   if (enc) state.encounter = enc;
   if (roster) state.roster = roster;
   if (player) state.player = player;
   if (mode === 'player' || mode === 'gm') state.mode = mode;
+  state.theme = isValidTheme(theme) ? theme : DEFAULT_THEME;
+  applyTheme(state.theme);
   normalizePlayerState(state);
   await reloadDatasets();
 

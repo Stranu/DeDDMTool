@@ -16,9 +16,9 @@ export function renderInitiative(root, api) {
 
   const toolbar = el('div', { class: 'init-toolbar' });
   const nextBtn = el('button', { class: 'btn primary grow', title: 'Prossimo turno', html: ICON.play + '<span>Prossimo turno</span>' });
-  const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi Mostri/PNG temporaneo o da archivio', html: '<span>+ Mostri</span>' });
-  const rosterBtn = el('button', { class: 'btn accent', title: 'Gestisci PG e alleati ricorrenti', html: '<span>+ PG/Alleati</span>' });
-  const resetBtn = el('button', { class: 'btn ghost', title: 'Azzera le iniziative totali', html: ICON.reset + '<span>Reset</span>' });
+  const addBtn = el('button', { class: 'btn accent', title: 'Aggiungi Mostri/PNG temporaneo o da archivio', html: ICON.skull + '<span>Mostri</span>' });
+  const rosterBtn = el('button', { class: 'btn accent', title: 'Gestisci PG e alleati ricorrenti', html: ICON.users + '<span>PG/Alleati</span>' });
+  const resetBtn = el('button', { class: 'btn ghost reset-btn', title: 'Azzera le iniziative totali', 'aria-label': 'Reset iniziativa', html: ICON.reset });
   toolbar.append(nextBtn, addBtn, rosterBtn, resetBtn);
   root.appendChild(toolbar);
 
@@ -138,7 +138,7 @@ export function renderInitiative(root, api) {
     return el('div', { class: 'empty' }, [
       el('div', { html: ICON.play }),
       el('strong', { text: 'Nessun combattente nell’iniziativa.' }),
-      el('div', { class: 'muted', text: 'Usa + Mostri per inserire una scheda Mostri/PNG o PG/Alleati per i ricorrenti.' })
+      el('div', { class: 'muted', text: 'Usa Mostri per inserire una scheda temporanea o da archivio, oppure PG/Alleati per i ricorrenti.' })
     ]);
   }
 
@@ -437,9 +437,9 @@ function spellSection(c, api, onChange = () => api.save()) {
 // ---------- Add / roster drawer ----------
 function openAddMenu(api) {
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Aggiungi un Mostro/PNG temporaneo all’iniziativa oppure cerca una scheda Mostri/PNG esistente.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'Crea un Mostro/PNG temporaneo (valido solo per questo combattimento) oppure aggiungi una scheda salvata dall’archivio.' }));
   const form = el('form', {});
-  const name = el('input', { class: 'input', required: '', placeholder: 'Nome Mostri/PNG (es. Goblin 1)' });
+  const name = el('input', { class: 'input', required: '', placeholder: 'Nome Mostro/PNG temporaneo (es. Goblin 1)' });
   const submit = el('button', { class: 'btn primary block', style: 'margin-top:10px', type: 'submit', html: ICON.plus + '<span>Aggiungi all’iniziativa</span>' });
   form.append(name, submit);
   form.addEventListener('submit', (event) => {
@@ -488,7 +488,7 @@ function openAddMenu(api) {
   }
   quickSearch.addEventListener('input', drawQuickList);
   drawQuickList();
-  api.openDrawer('+ Mostri', body);
+  api.openDrawer('Aggiungi Mostri/PNG', body);
 }
 
 function openArchiveReadOnly(entry, api) {
@@ -541,14 +541,14 @@ function appendReadOnlySpells(body, title, links, api) {
 function openRoster(api) {
   normalizePlayerState(api.state);
   const body = el('div', {});
-  body.appendChild(el('p', { class: 'muted', text: 'Le schede GM e i personaggi Player sono fonti separate. L’aggiunta all’iniziativa crea sempre una copia indipendente.' }));
+  body.appendChild(el('p', { class: 'muted', text: 'Crea qui i PG e i PNG alleati ricorrenti: restano salvati e riutilizzabili. L’aggiunta all’iniziativa crea sempre una copia indipendente.' }));
 
   const addRosterForm = (kind, title, collection) => {
     const section = el('section', {});
     section.appendChild(el('div', { class: 'mini-title', text: title }));
     const form = el('form', { class: 'row' });
-    const input = el('input', { class: 'input grow', required: '', placeholder: kind === 'pc' ? 'Nome del PG' : 'Nome del PNG' });
-    const button = el('button', { class: 'btn primary', type: 'submit', title: `Aggiungi ${title}`, html: ICON.plus });
+    const input = el('input', { class: 'input grow', required: '', placeholder: kind === 'pc' ? 'Nome del nuovo PG' : 'Nome del nuovo PNG alleato' });
+    const button = el('button', { class: 'btn primary', type: 'submit', title: title, html: ICON.plus + '<span>Crea</span>' });
     form.append(input, button);
     form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -563,8 +563,8 @@ function openRoster(api) {
     return section;
   };
 
-  const pcs = addRosterForm('pc', 'PG creati dal GM', api.state.roster.pcs);
-  const allies = addRosterForm('ally', 'Alleati creati dal GM', api.state.roster.allies);
+  const pcs = addRosterForm('pc', 'Crea un nuovo PG', api.state.roster.pcs);
+  const allies = addRosterForm('ally', 'Crea un nuovo PNG alleato', api.state.roster.allies);
   body.append(pcs, allies);
 
   const lists = el('div', {});
@@ -572,8 +572,8 @@ function openRoster(api) {
 
   function redrawRoster() {
     lists.innerHTML = '';
-    drawRosterList('PG creati dal GM', api.state.roster.pcs, 'pc');
-    drawRosterList('Alleati creati dal GM', api.state.roster.allies, 'ally');
+    drawRosterList('PG salvati', api.state.roster.pcs, 'pc');
+    drawRosterList('Alleati salvati', api.state.roster.allies, 'ally');
     drawPlayerList();
   }
   function drawRosterList(title, collection, kind) {
