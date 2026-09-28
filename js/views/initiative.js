@@ -75,11 +75,19 @@ export function renderInitiative(root, api) {
       sub.appendChild(ac);
     }
     if (hpMax || hpCurrent) {
-      const hp = el('span', { class: 'hp-mini' }, [
-        el('span', { html: ICON.heart }),
+      const hpBtn = el('button', {
+        class: 'hp-mini hp-edit-btn', type: 'button',
+        title: 'Gestisci punti ferita (danni, cure, PF temporanei)',
+        'aria-label': `Gestisci punti ferita di ${c.name}`
+      }, [
+        el('span', { class: 'hp-heart', html: ICON.heart }),
         el('span', { text: `${safeNumberText(c.hpCurrent)} / ${safeNumberText(c.hpMax)}` })
       ]);
-      sub.appendChild(hp);
+      hpBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openHpDrawer(c, api);
+      });
+      sub.appendChild(hpBtn);
       if (hpMax) {
         const bar = el('span', { class: 'hp-bar' });
         const hpLevel = hpPercent <= 25 ? 'low' : hpPercent <= 50 ? 'mid' : '';
@@ -284,6 +292,105 @@ function openCombatantDrawer(c, api, options = {}) {
     body,
     drawerOptions
   );
+}
+
+// ---------- Finestrella gestione PF (danni / cure / PF temporanei) ----------
+function openHpDrawer(c, api) {
+  const body = el('div', { class: 'hp-manager' });
+
+  // Riepilogo aggiornato a ogni mutazione.
+  const summary = el('div', { class: 'hp-summary' });
+  const hpValue = el('strong', {});
+  const tempRow = el('div', { class: 'hp-summary-temp' });
+  const renderSummary = () => {
+    const cur = number(c.hpCurrent);
+    const max = number(c.hpMax);
+    hpValue.textContent = max > 0 ? `${cur} / ${max}` : String(cur);
+    const temp = number(c.tempHp);
+    tempRow.innerHTML = '';
+    if (temp > 0) {
+      tempRow.appendChild(el('span', { class: 'temp-hp', text: `🛡 PF temporanei: ${temp}` }));
+    } else {
+      tempRow.appendChild(el('span', { class: 'muted', text: 'Nessun PF temporaneo' }));
+    }
+  };
+  summary.append(
+    el('div', { class: 'hp-summary-main' }, [el('span', { class: 'muted', text: 'Punti ferita' }), hpValue]),
+    tempRow
+  );
+  renderSummary();
+  body.appendChild(summary);
+
+  const refreshAll = () => {
+    renderSummary();
+    api.save();
+    api.refresh('initiative');
+  };
+
+  // --- Danni / Cure ---
+  body.appendChild(el('div', { class: 'mini-title', text: 'Danni e cure' }));
+  const amountInput = el('input', {
+    class: 'input grow', type: 'number', inputmode: 'numeric', min: '0', placeholder: 'Quantità'
+  });
+  const applyDamage = () => {
+    const amount = Math.max(0, Math.floor(number(amountInput.value)));
+    if (!amount) { api.toast('Inserisci una quantità maggiore di zero.'); return; }
+    let remaining = amount;
+    const temp = number(c.tempHp);
+    if (temp > 0) {
+      const absorbed = Math.min(temp, remaining);
+      c.tempHp = temp - absorbed;
+      remaining -= absorbed;
+    }
+    if (remaining > 0) {
+      c.hpCurrent = Math.max(0, number(c.hpCurrent) - remaining);
+    }
+    amountInput.value = '';
+    api.toast(`${amount} danni applicati a ${c.name}`);
+    refreshAll();
+  };
+  const applyHealing = () => {
+    const amount = Math.max(0, Math.floor(number(amountInput.value)));
+    if (!amount) { api.toast('Inserisci una quantità maggiore di zero.'); return; }
+    const max = number(c.hpMax);
+    let next = number(c.hpCurrent) + amount;
+    if (max > 0) next = Math.min(next, max);
+    c.hpCurrent = next;
+    amountInput.value = '';
+    api.toast(`${c.name} recupera ${amount} PF`);
+    refreshAll();
+  };
+  const damageBtn = el('button', { class: 'btn danger', type: 'button', html: '<span>− Danni</span>' });
+  damageBtn.addEventListener('click', applyDamage);
+  const healBtn = el('button', { class: 'btn primary', type: 'button', html: '<span>+ Cura</span>' });
+  healBtn.addEventListener('click', applyHealing);
+  // Invio = azione "danni" (uso più frequente in combattimento).
+  amountInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); applyDamage(); } });
+  body.appendChild(el('div', { class: 'row', style: 'margin-bottom:6px' }, [amountInput]));
+  body.appendChild(el('div', { class: 'row', style: 'gap:8px' }, [damageBtn, healBtn]));
+  body.appendChild(el('p', { class: 'muted', style: 'font-size:12px;margin:8px 0 0', text: 'I danni intaccano prima i PF temporanei, poi i PF. Le cure non superano i PF massimi e non toccano i temporanei.' }));
+
+  // --- PF temporanei (sostituzione) ---
+  body.appendChild(el('hr', { class: 'sep' }));
+  body.appendChild(el('div', { class: 'mini-title', text: 'PF temporanei' }));
+  const tempInput = el('input', {
+    class: 'input grow', type: 'number', inputmode: 'numeric', min: '0',
+    placeholder: 'Nuovo valore', value: number(c.tempHp) > 0 ? String(number(c.tempHp)) : ''
+  });
+  const setTempBtn = el('button', { class: 'btn accent', type: 'button', html: '<span>Imposta</span>' });
+  const applyTemp = () => {
+    const raw = tempInput.value;
+    const value = raw === '' ? 0 : Math.max(0, Math.floor(number(raw)));
+    c.tempHp = value;
+    api.toast(value > 0 ? `PF temporanei impostati a ${value}` : 'PF temporanei azzerati');
+    refreshAll();
+  };
+  setTempBtn.addEventListener('click', applyTemp);
+  tempInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); applyTemp(); } });
+  body.appendChild(el('div', { class: 'row', style: 'gap:8px' }, [tempInput, setTempBtn]));
+  body.appendChild(el('p', { class: 'muted', style: 'font-size:12px;margin:8px 0 0', text: 'Il nuovo valore sostituisce i PF temporanei esistenti (non si sommano).' }));
+
+  api.openDrawer(`PF · ${c.name || 'Combattente'}`, body);
 }
 
 function conditionSection(c, api, onChange = () => api.save()) {

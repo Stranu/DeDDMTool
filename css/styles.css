@@ -473,6 +473,23 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .dot-btn:hover { border-color: var(--accent); color: var(--text); }
 .dot-btn svg { width: 16px; height: 16px; }
 .hp-mini { display: inline-flex; align-items: center; gap: 4px; }
+.hp-edit-btn {
+  appearance: none; font: inherit; color: var(--text); cursor: pointer;
+  padding: 2px 8px 2px 5px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-elev-2);
+  transition: border-color .15s ease, background .15s ease, transform .12s ease;
+}
+.hp-edit-btn:hover, .hp-edit-btn:focus-visible { border-color: var(--danger); background: rgba(var(--danger-rgb), .12); }
+.hp-edit-btn:active { transform: scale(0.96); }
+.hp-edit-btn .hp-heart { display: inline-grid; place-items: center; color: var(--danger); }
+.hp-edit-btn .hp-heart svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
+
+/* Finestrella gestione PF */
+.hp-summary { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-elev); margin-bottom: 6px; }
+.hp-summary-main { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hp-summary-main strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+.hp-summary-temp { margin-top: 6px; font-size: 13px; }
+.hp-manager .btn { flex: 1; }
 .hp-bar { width: 60px; height: 6px; border-radius: 3px; background: var(--bg-elev-2); overflow: hidden; }
 .hp-bar > i { display: block; height: 100%; background: var(--ok); transition: width .25s ease, background .25s ease; }
 .hp-bar > i.mid { background: var(--accent-2); }
