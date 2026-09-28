@@ -83,6 +83,10 @@ export function renderInitiative(root, api) {
         el('span', { class: 'hp-heart', html: ICON.heart }),
         el('span', { text: `${safeNumberText(c.hpCurrent)} / ${safeNumberText(c.hpMax)}` })
       ]);
+      // stopPropagation su più eventi: evita che un tocco leggermente impreciso
+      // sul bottone risalga alla card e apra per errore la scheda del combattente.
+      hpBtn.addEventListener('pointerdown', (event) => event.stopPropagation());
+      hpBtn.addEventListener('mousedown', (event) => event.stopPropagation());
       hpBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         openHpDrawer(c, api);
@@ -298,6 +302,12 @@ function openCombatantDrawer(c, api, options = {}) {
 function openHpDrawer(c, api) {
   const body = el('div', { class: 'hp-manager' });
 
+  // Campo PF temporanei: dichiarato qui perché renderSummary ne aggiorna il valore.
+  const tempInput = el('input', {
+    class: 'input grow', type: 'number', inputmode: 'numeric', min: '0',
+    placeholder: 'Nuovo valore'
+  });
+
   // Riepilogo aggiornato a ogni mutazione.
   const summary = el('div', { class: 'hp-summary' });
   const hpValue = el('strong', {});
@@ -312,6 +322,11 @@ function openHpDrawer(c, api) {
       tempRow.appendChild(el('span', { class: 'temp-hp', text: `🛡 PF temporanei: ${temp}` }));
     } else {
       tempRow.appendChild(el('span', { class: 'muted', text: 'Nessun PF temporaneo' }));
+    }
+    // Riallinea il campo di modifica al valore corrente (es. dopo che i danni
+    // hanno consumato i temporanei), a meno che l'utente non lo stia editando.
+    if (document.activeElement !== tempInput) {
+      tempInput.value = temp > 0 ? String(temp) : '';
     }
   };
   summary.append(
@@ -378,10 +393,6 @@ function openHpDrawer(c, api) {
   // --- PF temporanei (sostituzione) ---
   body.appendChild(el('hr', { class: 'sep' }));
   body.appendChild(el('div', { class: 'mini-title', text: 'PF temporanei' }));
-  const tempInput = el('input', {
-    class: 'input grow', type: 'number', inputmode: 'numeric', min: '0',
-    placeholder: 'Nuovo valore', value: number(c.tempHp) > 0 ? String(number(c.tempHp)) : ''
-  });
   const setTempBtn = el('button', { class: 'btn accent', type: 'button', html: '<span>Imposta</span>' });
   const applyTemp = () => {
     const raw = tempInput.value;
