@@ -474,24 +474,23 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .dot-btn svg { width: 16px; height: 16px; }
 .hp-mini { display: inline-flex; align-items: center; gap: 4px; }
 .hp-edit-btn {
-  appearance: none; font: inherit; font-weight: 600; color: var(--text); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 5px;
-  min-height: 34px; padding: 4px 12px 4px 9px; border-radius: 999px;
-  border: 1px solid var(--danger); background: rgba(var(--danger-rgb), .14);
-  transition: border-color .15s ease, background .15s ease, transform .12s ease, box-shadow .15s ease;
+  appearance: none; font: inherit; color: var(--text); cursor: pointer;
+  display: inline-flex; flex-direction: column; align-items: stretch; gap: 2px;
+  padding: 2px 8px 3px 5px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg-elev-2);
+  transition: border-color .15s ease, background .15s ease, transform .12s ease;
 }
-.hp-edit-btn:hover, .hp-edit-btn:focus-visible {
-  background: rgba(var(--danger-rgb), .24);
-  box-shadow: 0 0 0 3px rgba(var(--danger-rgb), .18);
-}
-.hp-edit-btn:active { transform: scale(0.95); }
-.c-sub .hp-edit-btn { margin: 2px 0; }
+.hp-edit-btn:hover, .hp-edit-btn:focus-visible { border-color: var(--danger); background: var(--bg-elev-2); }
+.hp-edit-btn:active { transform: scale(0.96); }
+.hp-edit-btn .hp-mini { gap: 4px; }
 .hp-edit-btn .hp-heart { display: inline-grid; place-items: center; color: var(--danger); }
-.hp-edit-btn .hp-heart svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
-/* Piccola matita dopo il valore per segnalare che è modificabile */
-.hp-edit-btn::after {
-  content: "✎"; font-size: 12px; color: var(--text-dim); margin-left: 1px;
+.hp-edit-btn .hp-heart svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
+/* Piccola matita dopo i valori per segnalare che è modificabile */
+.hp-edit-btn .hp-mini::after {
+  content: "✎"; font-size: 11px; color: var(--text-dim); margin-left: 1px;
 }
+/* Barra vita come "sottolineatura" dei valori, dentro il pill */
+.hp-edit-btn .hp-bar { width: auto; height: 4px; margin-top: 1px; background: var(--bg); }
 
 /* Finestrella gestione PF */
 .hp-summary { padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-elev); margin-bottom: 6px; }

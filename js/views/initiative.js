@@ -75,14 +75,23 @@ export function renderInitiative(root, api) {
       sub.appendChild(ac);
     }
     if (hpMax || hpCurrent) {
-      const hpBtn = el('button', {
-        class: 'hp-mini hp-edit-btn', type: 'button',
-        title: 'Gestisci punti ferita (danni, cure, PF temporanei)',
-        'aria-label': `Gestisci punti ferita di ${c.name}`
-      }, [
+      const hpRow = el('span', { class: 'hp-mini' }, [
         el('span', { class: 'hp-heart', html: ICON.heart }),
         el('span', { text: `${safeNumberText(c.hpCurrent)} / ${safeNumberText(c.hpMax)}` })
       ]);
+      const hpBtn = el('button', {
+        class: 'hp-edit-btn', type: 'button',
+        title: 'Gestisci punti ferita (danni, cure, PF temporanei)',
+        'aria-label': `Gestisci punti ferita di ${c.name}`
+      }, [hpRow]);
+      // La barra vita fa da "sottolineatura" dei valori: sotto i numeri, larga quanto il pill.
+      if (hpMax) {
+        const bar = el('span', { class: 'hp-bar' });
+        const hpLevel = hpPercent <= 25 ? 'low' : hpPercent <= 50 ? 'mid' : '';
+        bar.appendChild(el('i', hpLevel ? { class: hpLevel } : {}));
+        bar.firstChild.style.width = `${hpPercent}%`;
+        hpBtn.appendChild(bar);
+      }
       // stopPropagation su più eventi: evita che un tocco leggermente impreciso
       // sul bottone risalga alla card e apra per errore la scheda del combattente.
       hpBtn.addEventListener('pointerdown', (event) => event.stopPropagation());
@@ -92,13 +101,6 @@ export function renderInitiative(root, api) {
         openHpDrawer(c, api);
       });
       sub.appendChild(hpBtn);
-      if (hpMax) {
-        const bar = el('span', { class: 'hp-bar' });
-        const hpLevel = hpPercent <= 25 ? 'low' : hpPercent <= 50 ? 'mid' : '';
-        bar.appendChild(el('i', hpLevel ? { class: hpLevel } : {}));
-        bar.firstChild.style.width = `${hpPercent}%`;
-        sub.appendChild(bar);
-      }
     }
     if (c.save) sub.appendChild(el('span', { text: `TS ${c.save}` }));
     if (number(c.tempHp) > 0) sub.appendChild(el('span', { class: 'temp-hp', text: `🛡 PF temp ${c.tempHp}` }));
