@@ -322,6 +322,11 @@ function openHpDrawer(c, api) {
   body.appendChild(summary);
 
   const refreshAll = () => {
+    // Se il combattente è una copia collegata a un PG/Alleato del roster, propaga
+    // la modifica alla scheda condivisa e alle altre copie. Senza questo passaggio
+    // il successivo renderInitiative (via linkSharedRosterEntities) ripristinerebbe
+    // i vecchi PF sovrascrivendo la modifica appena fatta.
+    if (c.rosterId) syncEncounterToRoster(c, api);
     renderSummary();
     api.save();
     api.refresh('initiative');
