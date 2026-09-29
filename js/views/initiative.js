@@ -1034,7 +1034,10 @@ function sortCombatants(encounter) {
     if (ai == null && bi == null) return (Number(b.initiativeBonus) || 0) - (Number(a.initiativeBonus) || 0);
     if (ai == null) return 1;
     if (bi == null) return -1;
-    return bi - ai;
+    if (bi !== ai) return bi - ai;
+    // Pareggio sul valore di iniziativa: viene prima chi ha il bonus più alto.
+    // Se anche il bonus pareggia, l'ordine è indifferente (lo gestisce il GM).
+    return (Number(b.initiativeBonus) || 0) - (Number(a.initiativeBonus) || 0);
   });
   // Se l'activeId non è più presente, lasciamo che Prossimo turno scelga il primo.
   return before.join('|') !== encounter.combatants.map((c) => c.id).join('|');
