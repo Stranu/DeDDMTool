@@ -919,9 +919,13 @@ function spellbookSection(character, api, root, options = { editable: true }) {
         'aria-label': `Slot totali livello ${level}`
       });
       max.addEventListener('change', () => {
-        slots.max = normalizeSlotValue(max.value);
-        slots.used = Math.min(slots.used, slots.max);
-        max.value = slots.max;
+        // Risolvo lo slot dal character al momento del change: normalizeCharacter
+        // (chiamato dagli altri campi dell'editor) sostituisce l'oggetto slots,
+        // quindi un riferimento catturato in closure diventerebbe orfano.
+        const current = character.spellbook.slots[level];
+        current.max = normalizeSlotValue(max.value);
+        current.used = Math.min(current.used, current.max);
+        max.value = current.max;
         refreshSlotViews(level);
         api.save();
       });
@@ -942,7 +946,16 @@ function spellbookSection(character, api, root, options = { editable: true }) {
   for (const level of [...grouped.keys()].sort((a, b) => a - b)) {
     const group = el('section', { class: 'spell-level-group', dataset: { slotLevel: String(level) } });
     const slots = level > 0 ? character.spellbook.slots[level] : null;
-    const heading = el('div', { class: 'row spell-level-heading' }, [el('strong', { text: level === 0 ? 'Trucchetti' : `${level}° livello` })]);
+    const spellsAtLevel = grouped.get(level);
+    const knownCount = spellsAtLevel.length;
+    const preparedCount = spellsAtLevel.filter((spell) => character.spellbook.preparedSpellIds.includes(spell.id)).length;
+    const countLabel = level === 0
+      ? `${knownCount} conosciut${knownCount === 1 ? 'o' : 'i'}`
+      : `${knownCount} conosciut${knownCount === 1 ? 'a' : 'e'} · ${preparedCount} preparat${preparedCount === 1 ? 'a' : 'e'}`;
+    const heading = el('div', { class: 'row spell-level-heading' }, [
+      el('strong', { text: level === 0 ? 'Trucchetti' : `${level}° livello` }),
+      el('span', { class: 'spell-count-meta muted', text: countLabel })
+    ]);
     if (level > 0) {
       const slotText = el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot totali' });
       if (editable) {

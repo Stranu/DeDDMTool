@@ -708,6 +708,7 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .spell-level-group { margin-top: 14px; }
 .spell-level-heading { padding: 7px 0; border-bottom: 1px solid var(--border); }
 .spell-level-heading .badge { text-align: center; }
+.spell-count-meta { font-size: 12px; }
 .spell-slots-editor { margin-top: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(var(--accent-rgb),.06); }
 .spell-slot-config { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 5px 0; border-top: 1px solid var(--border); }
 .spell-slot-config:first-of-type { border-top: 0; }
