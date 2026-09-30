@@ -633,6 +633,12 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .combatant:focus { outline: 2px solid var(--active-glow); outline-offset: 2px; }
 
 .manual-spell-marker { color: var(--accent-2); font-size: 14px; font-weight: 700; cursor: help; }
+.ritual-badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 3px;
+  margin-left: 6px; border-radius: 5px; font-size: 11px; font-weight: 800; line-height: 1;
+  color: var(--accent-2); border: 1px solid var(--accent-2); background: rgba(var(--accent-2-rgb), .14);
+  cursor: help; vertical-align: middle;
+}
 
 .favorite-toggle {
   appearance: none; border: 0; background: transparent; color: var(--text-dim);
@@ -709,6 +715,24 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .spell-level-heading { padding: 7px 0; border-bottom: 1px solid var(--border); }
 .spell-level-heading .badge { text-align: center; }
 .spell-count-meta { font-size: 12px; }
+
+/* Spellbook: riepilogo conteggi, origini, filtro livelli */
+.spellbook-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 2px; }
+.spellbook-known { font-size: 14px; }
+.spellbook-known strong { font-variant-numeric: tabular-nums; }
+.spellbook-known.over-limit strong { color: var(--accent-2); font-weight: 800; }
+.spellbook-extra-count {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; background: var(--bg-elev-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.spellbook-origin-tag {
+  display: inline-flex; align-items: center; margin-left: 6px; padding: 1px 6px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  background: rgba(var(--accent-2-rgb), .16); border: 1px solid rgba(var(--accent-2-rgb), .5); color: var(--accent-2);
+}
+.spellbook-origin-select { width: auto; min-width: 92px; padding: 5px 6px; font-size: 12px; }
+.spell-filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.spell-filter-bar[hidden] { display: none; }
 .spell-slots-editor { margin-top: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(var(--accent-rgb),.06); }
 .spell-slot-config { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 5px 0; border-top: 1px solid var(--border); }
 .spell-slot-config:first-of-type { border-top: 0; }

@@ -131,6 +131,7 @@ export function renderSpells(root, api) {
     const title = el('div', { class: 'grow' }, [
       el('div', { class: 'title' }, [
         document.createTextNode(spell.name),
+        spell.ritual ? ritualBadge() : null,
         spell.createdManually ? el('span', { class: 'manual-spell-marker', title: 'Creata a mano', 'aria-label': 'Creata a mano', text: ' ✎' }) : null
       ]),
       spell.original ? el('div', { class: 'en', text: spell.original }) : null
@@ -253,6 +254,11 @@ function availableClasses(spells) {
   return [...new Set([...BASE_CLASSES, ...spells.flatMap((spell) => spell.classes || [])])]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, 'it'));
+}
+
+// Badge "R" per le magie lanciabili come rituale. Riusato in lista magie e scheda PG.
+export function ritualBadge() {
+  return el('span', { class: 'ritual-badge', title: 'Lanciabile come rituale', 'aria-label': 'Rituale', text: 'R' });
 }
 
 export function spellDetails(spell) {
