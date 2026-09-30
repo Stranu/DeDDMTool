@@ -725,14 +725,47 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
   display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
   font-size: 12px; background: var(--bg-elev-2); border: 1px solid var(--border); color: var(--text-dim);
 }
+/* Tag origine: deve restare compatto (dentro .inventory-name gli span sono block). */
 .spellbook-origin-tag {
-  display: inline-flex; align-items: center; margin-left: 6px; padding: 1px 6px; border-radius: 6px;
+  display: inline-flex; width: auto; align-self: flex-start; align-items: center;
+  margin-top: 2px; padding: 1px 6px; border-radius: 6px;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
   background: rgba(var(--accent-2-rgb), .16); border: 1px solid rgba(var(--accent-2-rgb), .5); color: var(--accent-2);
 }
-.spellbook-origin-select { width: auto; min-width: 92px; padding: 5px 6px; font-size: 12px; }
 .spell-filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
 .spell-filter-bar[hidden] { display: none; }
+
+/* Pulsante "+" compatto nell'heading di livello */
+.spell-add-btn {
+  appearance: none; margin-left: auto; width: 30px; height: 30px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--accent); background: rgba(var(--accent-rgb), .14); color: var(--accent);
+  transition: background .15s ease, transform .12s ease;
+}
+.spell-add-btn:hover, .spell-add-btn:focus-visible { background: rgba(var(--accent-rgb), .26); }
+.spell-add-btn:active { transform: scale(0.94); }
+.spell-add-btn svg { width: 18px; height: 18px; }
+/* Quando il livello ha anche i controlli slot, il + non deve spingerli via */
+.spell-level-heading .slot-controls { margin-left: 8px; }
+
+/* Menu contestuale della singola magia (tre pallini) */
+.spellbook-row { position: relative; }
+.spell-menu-btn { flex: 0 0 auto; }
+.spell-row-menu {
+  position: absolute; top: 100%; right: 0; z-index: 20; min-width: 190px;
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elev);
+  box-shadow: 0 12px 30px rgba(0,0,0,.45);
+}
+.spell-menu-item {
+  appearance: none; text-align: left; border: 0; background: transparent; color: var(--text);
+  font: inherit; padding: 9px 10px; border-radius: 7px; cursor: pointer; min-height: 40px;
+}
+.spell-menu-item:hover:not(:disabled), .spell-menu-item:focus-visible { background: var(--bg-elev-2); }
+.spell-menu-item:disabled { opacity: .45; cursor: default; }
+.spell-menu-item.danger { color: var(--danger); }
+.spell-menu-origin { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px; }
+.spell-menu-origin span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; }
 .spell-slots-editor { margin-top: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(var(--accent-rgb),.06); }
 .spell-slot-config { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 5px 0; border-top: 1px solid var(--border); }
 .spell-slot-config:first-of-type { border-top: 0; }

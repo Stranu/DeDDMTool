@@ -904,11 +904,14 @@ function inventorySection(character, api, root, returnView = 'player') {
   redraw(); return section;
 }
 
-// Conta le magie conosciute per origine. Solo 'class' concorre al massimo.
-function spellCounts(character) {
+// Conta le magie conosciute per origine, escludendo i trucchetti (livello 0).
+// Solo l'origine 'class' concorre al massimo di magie conosciute.
+function spellCounts(character, api) {
   const meta = character.spellbook.spellMeta || {};
   const counts = { class: 0, domain: 0, item: 0, race: 0, other: 0 };
   for (const spellId of character.spellbook.knownSpellIds) {
+    const spell = api.state.spells.find((item) => item.id === spellId);
+    if (!spell || (spell.level ?? 0) === 0) continue; // i trucchetti non contano
     const origin = isValidSpellOrigin(meta[spellId]?.origin) ? meta[spellId].origin : DEFAULT_SPELL_ORIGIN;
     counts[origin] += 1;
   }
@@ -936,8 +939,8 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     derivedStat('Bonus txc incantesimi', spellValue(derived.spellAttackBonus, true))
   ]));
 
-  // Riepilogo conteggi: conosciute (di classe) / massimo + extra per origine.
-  const counts = spellCounts(character);
+  // Riepilogo conteggi: conosciute di classe (trucchetti esclusi) / massimo + extra per origine.
+  const counts = spellCounts(character, api);
   const maxKnown = normalizeSlotValue(character.spellbook.maxKnown);
   const overLimit = maxKnown > 0 && counts.class > maxKnown;
   const summary = el('div', { class: 'spellbook-summary' });
@@ -955,6 +958,7 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     section.appendChild(el('p', { class: 'muted', style: 'font-size:12px;margin:4px 0 0', text: 'Hai superato il numero massimo di magie conosciute di classe.' }));
   }
 
+  // --- MODIFICA: solo i "contenitori" (max conosciute + slot per livello). Nessuna lista. ---
   if (editable) {
     const maxInput = el('input', { class: 'slot-input', type: 'number', min: '0', value: maxKnown, 'aria-label': 'Massimo magie conosciute' });
     maxInput.addEventListener('change', () => {
@@ -966,9 +970,34 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     section.appendChild(el('div', { class: 'row', style: 'margin:8px 0', gap: '8px' }, [
       el('label', { class: 'slot-total-control' }, [document.createTextNode('Massimo magie conosciute (di classe)'), maxInput])
     ]));
+
+    const slotsSection = el('section', { class: 'spell-slots-editor' });
+    slotsSection.appendChild(el('div', { class: 'mini-title', text: 'Slot totali per livello' }));
+    for (let level = 1; level <= 9; level += 1) {
+      const slots = character.spellbook.slots[level];
+      const max = el('input', {
+        class: 'slot-input', type: 'number', min: '0', value: slots.max,
+        'aria-label': `Slot totali livello ${level}`
+      });
+      max.addEventListener('change', () => {
+        const current = character.spellbook.slots[level];
+        current.max = normalizeSlotValue(max.value);
+        current.used = Math.min(current.used, current.max);
+        max.value = current.max;
+        api.save();
+      });
+      slotsSection.appendChild(el('div', { class: 'spell-slot-config', dataset: { slotLevel: String(level) } }, [
+        el('strong', { text: `${level}° livello` }),
+        el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot totali' }),
+        el('label', { class: 'slot-total-control' }, [document.createTextNode('Totali'), max])
+      ]));
+    }
+    section.appendChild(slotsSection);
+    section.appendChild(el('p', { class: 'muted', style: 'font-size:12px;margin:10px 0 0', text: 'Le singole magie si aggiungono e gestiscono dalla visualizzazione della scheda.' }));
+    return section;
   }
 
-  // Raggruppo per livello.
+  // --- VISUALIZZAZIONE: gestione completa delle magie ---
   const grouped = new Map();
   for (const spellId of character.spellbook.knownSpellIds) {
     const spell = api.state.spells.find((item) => item.id === spellId);
@@ -999,32 +1028,6 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     filterToggle.setAttribute('aria-expanded', String(!filterBar.hidden));
   });
 
-  // Slot editor (solo in modifica).
-  if (editable) {
-    const slotsSection = el('section', { class: 'spell-slots-editor' });
-    slotsSection.appendChild(el('div', { class: 'mini-title', text: 'Slot totali per livello' }));
-    for (let level = 1; level <= 9; level += 1) {
-      const slots = character.spellbook.slots[level];
-      const max = el('input', {
-        class: 'slot-input', type: 'number', min: '0', value: slots.max,
-        'aria-label': `Slot totali livello ${level}`
-      });
-      max.addEventListener('change', () => {
-        const current = character.spellbook.slots[level];
-        current.max = normalizeSlotValue(max.value);
-        current.used = Math.min(current.used, current.max);
-        max.value = current.max;
-        api.save();
-      });
-      slotsSection.appendChild(el('div', { class: 'spell-slot-config', dataset: { slotLevel: String(level) } }, [
-        el('strong', { text: `${level}° livello` }),
-        el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot totali' }),
-        el('label', { class: 'slot-total-control' }, [document.createTextNode('Totali'), max])
-      ]));
-    }
-    section.appendChild(slotsSection);
-  }
-
   if (presentLevels.length) {
     section.appendChild(el('div', { class: 'row', style: 'margin:10px 0 4px' }, [el('div', { class: 'grow' }), filterToggle]));
     section.appendChild(filterBar);
@@ -1035,9 +1038,90 @@ function spellbookSection(character, api, root, options = { editable: true }) {
   const groupsWrap = el('div', {});
   section.appendChild(groupsWrap);
 
-  function spellRow(spell, level) {
+  // Chiude qualsiasi menu magia aperto.
+  function closeSpellMenus() {
+    section.querySelectorAll('.spell-row-menu').forEach((menu) => menu.remove());
+    section.querySelectorAll('.spell-menu-btn[aria-expanded="true"]').forEach((btn) => btn.setAttribute('aria-expanded', 'false'));
+  }
+
+  function openSpellRowMenu(spell, level, anchorBtn) {
+    const alreadyOpen = anchorBtn.getAttribute('aria-expanded') === 'true';
+    closeSpellMenus();
+    if (alreadyOpen) return;
+    anchorBtn.setAttribute('aria-expanded', 'true');
     const slots = level > 0 ? character.spellbook.slots[level] : null;
+    const prepared = character.spellbook.preparedSpellIds.includes(spell.id);
     const meta = character.spellbook.spellMeta[spell.id] || { origin: DEFAULT_SPELL_ORIGIN };
+    const menu = el('div', { class: 'spell-row-menu', role: 'menu' });
+
+    // Lancia (solo livelli > 0)
+    if (level > 0) {
+      const canCast = slots.used < slots.max;
+      const cast = el('button', { class: 'spell-menu-item', type: 'button', role: 'menuitem', text: canCast ? 'Lancia (usa slot)' : 'Nessuno slot disponibile' });
+      cast.disabled = !canCast;
+      cast.addEventListener('click', () => {
+        if (!consumeSpellSlot(character, level)) return;
+        api.save();
+        closeSpellMenus();
+        rerender();
+      });
+      menu.appendChild(cast);
+    }
+
+    // Prepara / Rimuovi preparazione (solo livelli > 0)
+    if (level > 0) {
+      const prep = el('button', { class: 'spell-menu-item', type: 'button', role: 'menuitem', text: prepared ? 'Rimuovi preparazione' : 'Prepara' });
+      prep.addEventListener('click', () => {
+        if (prepared) character.spellbook.preparedSpellIds = character.spellbook.preparedSpellIds.filter((id) => id !== spell.id);
+        else if (!character.spellbook.preparedSpellIds.includes(spell.id)) character.spellbook.preparedSpellIds.push(spell.id);
+        api.save();
+        closeSpellMenus();
+        rerender();
+      });
+      menu.appendChild(prep);
+    }
+
+    // Fonte (menu a tendina)
+    const originLabel = el('label', { class: 'spell-menu-origin' }, [el('span', { text: 'Fonte' })]);
+    const originSelect = el('select', { class: 'input', 'aria-label': `Fonte di ${spell.name}` });
+    for (const [value, label] of SPELL_ORIGINS) originSelect.appendChild(el('option', { value, text: label }));
+    originSelect.value = meta.origin;
+    originSelect.addEventListener('click', (event) => event.stopPropagation());
+    originSelect.addEventListener('change', () => {
+      character.spellbook.spellMeta[spell.id] = { origin: isValidSpellOrigin(originSelect.value) ? originSelect.value : DEFAULT_SPELL_ORIGIN };
+      api.save();
+      closeSpellMenus();
+      rerender();
+    });
+    originLabel.appendChild(originSelect);
+    menu.appendChild(originLabel);
+
+    // Dimentica
+    const forget = el('button', { class: 'spell-menu-item danger', type: 'button', role: 'menuitem', text: 'Dimentica' });
+    forget.addEventListener('click', () => {
+      removeKnownSpell(character, spell.id);
+      api.save();
+      closeSpellMenus();
+      rerender();
+    });
+    menu.appendChild(forget);
+
+    anchorBtn.parentElement.appendChild(menu);
+
+    // Chiude il menu al primo click fuori da esso (registrato dopo il click corrente).
+    setTimeout(() => {
+      const onOutside = (event) => {
+        if (menu.contains(event.target) || anchorBtn.contains(event.target)) return;
+        document.removeEventListener('click', onOutside, true);
+        closeSpellMenus();
+      };
+      document.addEventListener('click', onOutside, true);
+    }, 0);
+  }
+
+  function spellRow(spell, level) {
+    const meta = character.spellbook.spellMeta[spell.id] || { origin: DEFAULT_SPELL_ORIGIN };
+    const prepared = character.spellbook.preparedSpellIds.includes(spell.id);
     const row = el('div', { class: 'inventory-row spellbook-row' });
     const name = el('button', { class: 'inventory-name', type: 'button' }, [
       el('strong', {}, [document.createTextNode(spell.name), spell.ritual ? ritualBadge() : null]),
@@ -1048,49 +1132,15 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     name.addEventListener('click', () => api.openDrawer(spell.name, spellDetails(spell)));
     row.appendChild(name);
 
-    if (editable) {
-      const originSelect = el('select', { class: 'input spellbook-origin-select', 'aria-label': `Origine di ${spell.name}` });
-      for (const [value, label] of SPELL_ORIGINS) originSelect.appendChild(el('option', { value, text: label }));
-      originSelect.value = meta.origin;
-      originSelect.addEventListener('change', () => {
-        character.spellbook.spellMeta[spell.id] = { origin: isValidSpellOrigin(originSelect.value) ? originSelect.value : DEFAULT_SPELL_ORIGIN };
-        api.save();
-        rerender();
-      });
-      row.appendChild(originSelect);
+    if (level > 0 && prepared) row.appendChild(el('span', { class: 'badge', text: 'Preparata' }));
 
-      const prep = el('label', { class: 'checkline compact-check' });
-      const check = el('input', { type: 'checkbox' });
-      check.checked = character.spellbook.preparedSpellIds.includes(spell.id);
-      check.addEventListener('change', () => {
-        if (check.checked && !character.spellbook.preparedSpellIds.includes(spell.id)) character.spellbook.preparedSpellIds.push(spell.id);
-        else character.spellbook.preparedSpellIds = character.spellbook.preparedSpellIds.filter((id) => id !== spell.id);
-        api.save();
-      });
-      prep.append(check, document.createTextNode('Prep.'));
-      row.appendChild(prep);
-
-      const remove = el('button', { class: 'dot-btn', type: 'button', title: `Rimuovi ${spell.name}`, html: ICON.trash });
-      remove.addEventListener('click', () => {
-        removeKnownSpell(character, spell.id);
-        api.save();
-        rerender();
-      });
-      row.appendChild(remove);
-    } else {
-      if (character.spellbook.preparedSpellIds.includes(spell.id)) row.appendChild(el('span', { class: 'badge', text: 'Preparata' }));
-      if (level > 0) {
-        const group = row; // updateSlotGroup opera sul gruppo, gestito sotto
-        const launch = el('button', { class: 'chip on spell-launch', type: 'button', text: slots.used < slots.max ? 'Lancia' : 'Scarico' });
-        launch.disabled = slots.used >= slots.max;
-        launch.addEventListener('click', () => {
-          if (!consumeSpellSlot(character, level)) return;
-          api.save();
-          updateSlotGroup(groupsWrap.querySelector(`[data-slot-level="${level}"]`), slots);
-        });
-        row.appendChild(launch);
-      }
-    }
+    // Menu "tre pallini": Lancia / Prepara(toggle) / fonte / Dimentica.
+    const menuBtn = el('button', { class: 'dot-btn spell-menu-btn', type: 'button', title: `Opzioni per ${spell.name}`, 'aria-label': `Opzioni per ${spell.name}`, 'aria-haspopup': 'true', 'aria-expanded': 'false', html: ICON.dots });
+    menuBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openSpellRowMenu(spell, level, menuBtn);
+    });
+    row.appendChild(menuBtn);
     return row;
   }
 
@@ -1104,54 +1154,42 @@ function spellbookSection(character, api, root, options = { editable: true }) {
       ? `${knownCount} conosciut${knownCount === 1 ? 'o' : 'i'}`
       : `${knownCount} conosciut${knownCount === 1 ? 'a' : 'e'}` +
         (preparedCount > 0 ? ` · ${preparedCount} preparat${preparedCount === 1 ? 'a' : 'e'}` : '');
+    // Pulsante "+" compatto per aggiungere una magia di questo livello.
+    const addBtn = el('button', { class: 'spell-add-btn', type: 'button', title: `Aggiungi magia di ${level === 0 ? 'trucchetto' : level + '° livello'}`, 'aria-label': `Aggiungi magia di ${level === 0 ? 'trucchetto' : level + '° livello'}`, html: ICON.plus });
+    addBtn.addEventListener('click', () => openSpellPicker(character, api, root, level, rerender));
     const heading = el('div', { class: 'row spell-level-heading' }, [
       el('strong', { text: level === 0 ? 'Trucchetti' : `${level}° livello` }),
-      el('span', { class: 'spell-count-meta muted', text: countLabel })
+      el('span', { class: 'spell-count-meta muted', text: countLabel }),
+      addBtn
     ]);
     if (level > 0) {
       const slotText = el('span', { class: 'slot-used-box', text: `${slots.used}/${slots.max}`, title: 'Slot usati / slot totali' });
-      if (editable) {
-        heading.appendChild(slotText);
-      } else {
-        const minus = el('button', { class: 'slot-adjust', type: 'button', text: '−', 'aria-label': `Riduci slot usati livello ${level}` });
-        const plus = el('button', { class: 'slot-adjust', type: 'button', text: '+', 'aria-label': `Aumenta slot usati livello ${level}` });
-        minus.addEventListener('click', () => { slots.used = Math.max(0, slots.used - 1); updateSlotGroup(group, slots); api.save(); });
-        plus.addEventListener('click', () => { slots.used = Math.min(slots.max, slots.used + 1); updateSlotGroup(group, slots); api.save(); });
-        heading.appendChild(el('div', { class: 'slot-controls' }, [minus, slotText, plus]));
-      }
+      const minus = el('button', { class: 'slot-adjust', type: 'button', text: '−', 'aria-label': `Riduci slot usati livello ${level}` });
+      const plus = el('button', { class: 'slot-adjust', type: 'button', text: '+', 'aria-label': `Aumenta slot usati livello ${level}` });
+      minus.addEventListener('click', () => { slots.used = Math.max(0, slots.used - 1); updateSlotGroup(group, slots); api.save(); });
+      plus.addEventListener('click', () => { slots.used = Math.min(slots.max, slots.used + 1); updateSlotGroup(group, slots); api.save(); });
+      heading.appendChild(el('div', { class: 'slot-controls' }, [minus, slotText, plus]));
     }
     group.appendChild(heading);
     for (const spell of spellsAtLevel.slice().sort((a, b) => a.name.localeCompare(b.name, 'it'))) {
       group.appendChild(spellRow(spell, level));
     }
-    if (editable) {
-      const addBtn = el('button', { class: 'btn sm ghost block', type: 'button', style: 'margin-top:6px', html: ICON.plus + `<span>Aggiungi magia di ${level === 0 ? 'trucchetto' : level + '° livello'}</span>` });
-      addBtn.addEventListener('click', () => openSpellPicker(character, api, root, level, rerender));
-      group.appendChild(addBtn);
+    if (!spellsAtLevel.length) {
+      group.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessuna magia. Usa + per aggiungerne.' }));
     }
-    if (level > 0 && !editable) updateSlotGroup(group, slots);
+    if (level > 0) updateSlotGroup(group, slots);
     return group;
   }
 
   function drawGroups() {
+    closeSpellMenus();
     groupsWrap.innerHTML = '';
-    // In modifica mostro sempre tutti i livelli 0-9 (per poter aggiungere ovunque);
-    // in visualizzazione solo i livelli con magie, filtrati dal chip attivo.
-    const levelsToShow = editable
-      ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-      : presentLevels;
+    // Mostro sempre tutti i livelli 0-9 (per poter aggiungere ovunque), filtrati dal chip attivo.
+    const levelsToShow = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     const filtered = levelFilter == null ? levelsToShow : levelsToShow.filter((l) => l === levelFilter);
-    if (!filtered.length) {
-      groupsWrap.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessuna magia da mostrare per questo filtro.' }));
-      return;
-    }
     for (const level of filtered) groupsWrap.appendChild(levelGroup(level));
   }
 
-  if (!grouped.size && !editable) {
-    section.appendChild(el('div', { class: 'muted', style: 'font-size:13px', text: 'Nessuna magia assegnata. Usa Assegna nella sezione Magie o aggiungila in modifica.' }));
-    return section;
-  }
   drawGroups();
   return section;
 }
@@ -1163,24 +1201,37 @@ function removeKnownSpell(character, spellId) {
   if (character.spellbook.spellMeta) delete character.spellbook.spellMeta[spellId];
 }
 
-// Selettore magie per aggiungere una conosciuta di un dato livello.
+// Selettore magie per aggiungere una conosciuta di un dato livello, con filtro per classe.
 function openSpellPicker(character, api, root, level, onDone) {
   const body = el('div', {});
   body.appendChild(el('p', { class: 'muted', text: `Scegli una magia di ${level === 0 ? 'trucchetto' : level + '° livello'} da aggiungere alle conosciute.` }));
   const search = el('input', { class: 'input', type: 'search', placeholder: 'Cerca magia…', 'aria-label': 'Cerca magia' });
-  const list = el('div', { style: 'margin-top:8px' });
-  body.append(search, list);
 
   const candidates = api.state.spells
     .filter((spell) => (spell.level ?? 0) === level)
     .sort((a, b) => a.name.localeCompare(b.name, 'it'));
 
+  // Classi disponibili tra le candidate del livello, per il filtro.
+  const classSet = new Set();
+  for (const spell of candidates) for (const c of (spell.classes || [])) classSet.add(c);
+  const classes = [...classSet].sort((a, b) => a.localeCompare(b, 'it'));
+  const classSelect = el('select', { class: 'input', 'aria-label': 'Filtra per classe' }, [el('option', { value: '', text: 'Tutte le classi' })]);
+  for (const c of classes) classSelect.appendChild(el('option', { value: c, text: c.charAt(0).toUpperCase() + c.slice(1) }));
+
+  const list = el('div', { style: 'margin-top:8px' });
+  body.append(el('div', { class: 'row', style: 'gap:8px' }, [el('div', { class: 'grow' }, [search]), classSelect]), list);
+
   const draw = () => {
     const q = fold(search.value);
+    const cls = classSelect.value;
     list.innerHTML = '';
-    const matches = candidates.filter((spell) => !q || fold(spell.name).includes(q) || fold(spell.original || '').includes(q));
+    const matches = candidates.filter((spell) => {
+      if (q && !fold(spell.name).includes(q) && !fold(spell.original || '').includes(q)) return false;
+      if (cls && !(spell.classes || []).includes(cls)) return false;
+      return true;
+    });
     if (!matches.length) {
-      list.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: api.state.spells.length ? 'Nessuna magia trovata per questo livello.' : 'Nessuna magia importata. Importa un CSV dalle Impostazioni.' }));
+      list.appendChild(el('div', { class: 'muted', style: 'font-size:13px;padding:6px 0', text: api.state.spells.length ? 'Nessuna magia corrisponde ai criteri.' : 'Nessuna magia importata. Importa un CSV dalle Impostazioni.' }));
       return;
     }
     for (const spell of matches.slice(0, 200)) {
@@ -1204,6 +1255,7 @@ function openSpellPicker(character, api, root, level, onDone) {
     }
   };
   search.addEventListener('input', draw);
+  classSelect.addEventListener('change', draw);
   draw();
   api.openDrawer(`Aggiungi magia · ${level === 0 ? 'Trucchetti' : level + '° livello'}`, body);
 }
