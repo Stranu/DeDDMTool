@@ -725,10 +725,10 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
   display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
   font-size: 12px; background: var(--bg-elev-2); border: 1px solid var(--border); color: var(--text-dim);
 }
-/* Tag origine: deve restare compatto (dentro .inventory-name gli span sono block). */
+/* Tag origine: badge compatto, in linea con gli altri metadati. */
 .spellbook-origin-tag {
-  display: inline-flex; width: auto; align-self: flex-start; align-items: center;
-  margin-top: 2px; padding: 1px 6px; border-radius: 6px;
+  display: inline-flex; align-items: center;
+  padding: 1px 6px; border-radius: 6px;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
   background: rgba(var(--accent-2-rgb), .16); border: 1px solid rgba(var(--accent-2-rgb), .5); color: var(--accent-2);
 }
@@ -748,11 +748,26 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 /* Quando il livello ha anche i controlli slot, il + non deve spingerli via */
 .spell-level-heading .slot-controls { margin-left: 8px; }
 
+/* ---------- Riga magia compatta ----------
+   Layout: una riga superiore con nome (sx) e tre-pallini (dx) allineati in alto,
+   e una riga inferiore con metadati e tag in linea. Occupa il minimo spazio. */
+.spellbook-row { position: relative; flex-direction: column; align-items: stretch; gap: 2px; min-height: 0; padding: 7px 10px; }
+.spellbook-row-top { display: flex; align-items: flex-start; gap: 8px; }
+.spellbook-name { flex: 1; min-width: 0; padding: 0; }
+.spellbook-name strong { display: inline; }
+.spell-menu-btn { flex: 0 0 auto; width: 30px; height: 30px; align-self: flex-start; }
+.spell-menu-btn svg { width: 18px; height: 18px; }
+.spellbook-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.spellbook-prepared-tag {
+  display: inline-flex; align-items: center;
+  padding: 1px 6px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  background: rgba(var(--accent-rgb), .16); border: 1px solid rgba(var(--accent-rgb), .5); color: var(--accent);
+}
+
 /* Menu contestuale della singola magia (tre pallini) */
-.spellbook-row { position: relative; }
-.spell-menu-btn { flex: 0 0 auto; }
 .spell-row-menu {
-  position: absolute; top: 100%; right: 0; z-index: 20; min-width: 190px;
+  position: absolute; top: 100%; right: 0; z-index: 20; min-width: 210px;
   display: flex; flex-direction: column; gap: 2px; padding: 6px;
   border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elev);
   box-shadow: 0 12px 30px rgba(0,0,0,.45);
@@ -760,12 +775,28 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .spell-menu-item {
   appearance: none; text-align: left; border: 0; background: transparent; color: var(--text);
   font: inherit; padding: 9px 10px; border-radius: 7px; cursor: pointer; min-height: 40px;
+  display: flex; align-items: center; gap: 10px;
 }
 .spell-menu-item:hover:not(:disabled), .spell-menu-item:focus-visible { background: var(--bg-elev-2); }
 .spell-menu-item:disabled { opacity: .45; cursor: default; }
 .spell-menu-item.danger { color: var(--danger); }
-.spell-menu-origin { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px; }
-.spell-menu-origin span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; }
+.spell-menu-icon { flex: 0 0 auto; display: inline-grid; place-items: center; width: 18px; height: 18px; color: var(--text-dim); }
+.spell-menu-icon svg { width: 18px; height: 18px; }
+.spell-menu-item.danger .spell-menu-icon { color: var(--danger); }
+.spell-menu-label { flex: 1; min-width: 0; }
+/* Riga Fonte: icona + etichetta + select sulla stessa riga, mai a capo. */
+.spell-menu-origin {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; min-height: 40px;
+  border-top: 1px solid var(--border); margin-top: 2px; padding-top: 9px;
+}
+.spell-menu-origin .spell-menu-label { flex: 0 0 auto; }
+.spell-menu-origin-select {
+  flex: 1; min-width: 0; margin-left: auto;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 8px; border-radius: 8px; font: inherit; font-size: 14px;
+}
+.spell-menu-origin-select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .spell-slots-editor { margin-top: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(var(--accent-rgb),.06); }
 .spell-slot-config { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 5px 0; border-top: 1px solid var(--border); }
 .spell-slot-config:first-of-type { border-top: 0; }
@@ -774,10 +805,9 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .slot-controls { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; }
 .slot-adjust { width: 28px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; }
 .slot-adjust:disabled { opacity: .4; cursor: not-allowed; }
-.spellbook-meta { display: block; color: var(--text-dim); font-size: 11px; font-weight: 400; }
+.spellbook-meta { display: inline; color: var(--text-dim); font-size: 11px; font-weight: 400; }
 .spellcasting-stats { grid-template-columns: repeat(3, 1fr); margin-top: 8px; }
 .slot-input { width: 58px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
-.spellbook-row { min-height: 44px; }
 .inventory-category { margin-top: 16px; }
 
 /* ---------- Character sheet inspired layout ---------- */

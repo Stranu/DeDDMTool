@@ -1054,10 +1054,18 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     const meta = character.spellbook.spellMeta[spell.id] || { origin: DEFAULT_SPELL_ORIGIN };
     const menu = el('div', { class: 'spell-row-menu', role: 'menu' });
 
+    // Voce di menu con icona + etichetta, per rendere chiaro che è cliccabile.
+    const menuItem = (icon, label, { danger = false } = {}) => el('button', {
+      class: `spell-menu-item${danger ? ' danger' : ''}`, type: 'button', role: 'menuitem'
+    }, [
+      el('span', { class: 'spell-menu-icon', html: icon }),
+      el('span', { class: 'spell-menu-label', text: label })
+    ]);
+
     // Lancia (solo livelli > 0)
     if (level > 0) {
       const canCast = slots.used < slots.max;
-      const cast = el('button', { class: 'spell-menu-item', type: 'button', role: 'menuitem', text: canCast ? 'Lancia (usa slot)' : 'Nessuno slot disponibile' });
+      const cast = menuItem(ICON.play, canCast ? 'Lancia (usa slot)' : 'Nessuno slot disponibile');
       cast.disabled = !canCast;
       cast.addEventListener('click', () => {
         if (!consumeSpellSlot(character, level)) return;
@@ -1070,7 +1078,7 @@ function spellbookSection(character, api, root, options = { editable: true }) {
 
     // Prepara / Rimuovi preparazione (solo livelli > 0)
     if (level > 0) {
-      const prep = el('button', { class: 'spell-menu-item', type: 'button', role: 'menuitem', text: prepared ? 'Rimuovi preparazione' : 'Prepara' });
+      const prep = menuItem(prepared ? ICON.x : ICON.sparkle, prepared ? 'Rimuovi preparazione' : 'Prepara');
       prep.addEventListener('click', () => {
         if (prepared) character.spellbook.preparedSpellIds = character.spellbook.preparedSpellIds.filter((id) => id !== spell.id);
         else if (!character.spellbook.preparedSpellIds.includes(spell.id)) character.spellbook.preparedSpellIds.push(spell.id);
@@ -1081,9 +1089,12 @@ function spellbookSection(character, api, root, options = { editable: true }) {
       menu.appendChild(prep);
     }
 
-    // Fonte (menu a tendina)
-    const originLabel = el('label', { class: 'spell-menu-origin' }, [el('span', { text: 'Fonte' })]);
-    const originSelect = el('select', { class: 'input', 'aria-label': `Fonte di ${spell.name}` });
+    // Fonte (menu a tendina) — etichetta e select sulla stessa riga, senza andare a capo.
+    const originRow = el('div', { class: 'spell-menu-origin' }, [
+      el('span', { class: 'spell-menu-icon', html: ICON.sparkle }),
+      el('span', { class: 'spell-menu-label', text: 'Fonte' })
+    ]);
+    const originSelect = el('select', { class: 'spell-menu-origin-select', 'aria-label': `Fonte di ${spell.name}` });
     for (const [value, label] of SPELL_ORIGINS) originSelect.appendChild(el('option', { value, text: label }));
     originSelect.value = meta.origin;
     originSelect.addEventListener('click', (event) => event.stopPropagation());
@@ -1093,11 +1104,11 @@ function spellbookSection(character, api, root, options = { editable: true }) {
       closeSpellMenus();
       rerender();
     });
-    originLabel.appendChild(originSelect);
-    menu.appendChild(originLabel);
+    originRow.appendChild(originSelect);
+    menu.appendChild(originRow);
 
     // Dimentica
-    const forget = el('button', { class: 'spell-menu-item danger', type: 'button', role: 'menuitem', text: 'Dimentica' });
+    const forget = menuItem(ICON.trash, 'Dimentica', { danger: true });
     forget.addEventListener('click', () => {
       removeKnownSpell(character, spell.id);
       api.save();
@@ -1123,16 +1134,17 @@ function spellbookSection(character, api, root, options = { editable: true }) {
     const meta = character.spellbook.spellMeta[spell.id] || { origin: DEFAULT_SPELL_ORIGIN };
     const prepared = character.spellbook.preparedSpellIds.includes(spell.id);
     const row = el('div', { class: 'inventory-row spellbook-row' });
-    const name = el('button', { class: 'inventory-name', type: 'button' }, [
-      el('strong', {}, [document.createTextNode(spell.name), spell.ritual ? ritualBadge() : null]),
-      el('span', { class: 'spellbook-meta', text: spellSummaryMetadata(spell), title: 'Tempo di lancio · gittata · C = concentrazione' }),
-      meta.origin !== 'class' ? el('span', { class: 'spellbook-origin-tag', text: spellOriginLabel(meta.origin) }) : null,
-      spell.favorite ? el('span', { class: 'manual-spell-marker', text: ' ★' }) : null
+
+    // Riga superiore: nome a sinistra, pulsante tre-pallini allineato in alto a destra.
+    const topRow = el('div', { class: 'spellbook-row-top' });
+    const name = el('button', { class: 'inventory-name spellbook-name', type: 'button' }, [
+      el('strong', {}, [
+        document.createTextNode(spell.name),
+        spell.ritual ? ritualBadge() : null,
+        spell.favorite ? el('span', { class: 'manual-spell-marker', text: '★' }) : null
+      ])
     ]);
     name.addEventListener('click', () => api.openDrawer(spell.name, spellDetails(spell)));
-    row.appendChild(name);
-
-    if (level > 0 && prepared) row.appendChild(el('span', { class: 'badge', text: 'Preparata' }));
 
     // Menu "tre pallini": Lancia / Prepara(toggle) / fonte / Dimentica.
     const menuBtn = el('button', { class: 'dot-btn spell-menu-btn', type: 'button', title: `Opzioni per ${spell.name}`, 'aria-label': `Opzioni per ${spell.name}`, 'aria-haspopup': 'true', 'aria-expanded': 'false', html: ICON.dots });
@@ -1140,7 +1152,16 @@ function spellbookSection(character, api, root, options = { editable: true }) {
       event.stopPropagation();
       openSpellRowMenu(spell, level, menuBtn);
     });
-    row.appendChild(menuBtn);
+    topRow.append(name, menuBtn);
+    row.appendChild(topRow);
+
+    // Riga inferiore compatta: metadati + eventuali tag (fonte / preparata) in linea.
+    const tags = el('div', { class: 'spellbook-tags' }, [
+      el('span', { class: 'spellbook-meta', text: spellSummaryMetadata(spell), title: 'Tempo di lancio · gittata · C = concentrazione' }),
+      meta.origin !== 'class' ? el('span', { class: 'spellbook-origin-tag', text: spellOriginLabel(meta.origin) }) : null,
+      level > 0 && prepared ? el('span', { class: 'spellbook-prepared-tag', text: 'Preparata' }) : null
+    ]);
+    row.appendChild(tags);
     return row;
   }
 
