@@ -755,6 +755,10 @@ code.kbd { background: var(--bg); border: 1px solid var(--border); border-radius
 .spellbook-row-top { display: flex; align-items: flex-start; gap: 8px; }
 .spellbook-name { flex: 1; min-width: 0; padding: 0; }
 .spellbook-name strong { display: inline; }
+/* La regola globale .inventory-name span { display:block } forzerebbe il badge "R"
+   (e la stellina preferiti) a occupare tutta la riga: qui li rimettiamo inline. */
+.spellbook-name .ritual-badge { display: inline-grid; }
+.spellbook-name .manual-spell-marker { display: inline; }
 .spell-menu-btn { flex: 0 0 auto; width: 30px; height: 30px; align-self: flex-start; }
 .spell-menu-btn svg { width: 18px; height: 18px; }
 .spellbook-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
