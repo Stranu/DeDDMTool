@@ -55,13 +55,22 @@ export function renderSettings(root, api) {
   root.appendChild(help);
 
   root.appendChild(el('hr', { class: 'sep' }));
-  const otherServicesDesc = el('p', {
+  const otherServicesDesc = el('div', {
     id: 'other-services-desc',
     class: 'muted other-services-desc',
     hidden: true,
-    style: 'font-size:13px;margin:0 0 10px',
-    text: 'Altri strumenti gratuiti che ho realizzato. GymBro e IndiSpesabile condividono lo stesso account.'
-  });
+    style: 'font-size:13px;margin:0 0 10px'
+  }, [
+    el('p', { style: 'margin:0 0 6px', text: 'Altri strumenti gratuiti che ho realizzato.' }),
+    el('p', { class: 'other-service-purpose', style: 'margin:0 0 4px' }, [
+      el('strong', { text: 'GymBro' }),
+      ': App per tracciare i tuoi allenamenti e progressi in palestra.'
+    ]),
+    el('p', { class: 'other-service-purpose', style: 'margin:0' }, [
+      el('strong', { text: 'IndiSpesabile' }),
+      ': Lista della spesa condivisa, semplice e veloce.'
+    ])
+  ]);
   const otherServicesToggle = el('button', {
     type: 'button',
     class: 'other-services-help-toggle',
@@ -157,11 +166,12 @@ export function renderSettings(root, api) {
       { name: 'GymBro', url: 'https://stranu.github.io/GymBro', icon: 'https://stranu.github.io/GymBro/icons/icon-192.png' },
       { name: 'IndiSpesabile', url: 'https://stranu.github.io/IndiSpesabile', icon: 'https://stranu.github.io/IndiSpesabile/icons/icon-192.png' }
     ];
+    // Navigazione top-level nella stessa scheda (senza target="_blank"): un link
+    // in-scope verso una PWA installata viene "catturato" dal browser/OS e aperto
+    // nell'app installata in standalone. Con target="_blank" resterebbe nel browser.
     const rows = OTHER_SERVICES.map((service) => el('a', {
       class: 'other-service-link',
-      href: service.url,
-      target: '_blank',
-      rel: 'noopener noreferrer'
+      href: service.url
     }, [
       el('img', { class: 'other-service-icon', src: service.icon, alt: '', loading: 'lazy', width: 40, height: 40 }),
       el('span', { class: 'other-service-name', text: service.name })
