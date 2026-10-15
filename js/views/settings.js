@@ -54,6 +54,34 @@ export function renderSettings(root, api) {
   }));
   root.appendChild(help);
 
+  root.appendChild(el('hr', { class: 'sep' }));
+  const otherServicesDesc = el('p', {
+    id: 'other-services-desc',
+    class: 'muted other-services-desc',
+    hidden: true,
+    style: 'font-size:13px;margin:0 0 10px',
+    text: 'Altri strumenti gratuiti che ho realizzato. GymBro e IndiSpesabile condividono lo stesso account.'
+  });
+  const otherServicesToggle = el('button', {
+    type: 'button',
+    class: 'other-services-help-toggle',
+    'aria-expanded': 'false',
+    'aria-controls': 'other-services-desc',
+    'aria-label': 'Mostra descrizione',
+    title: 'Mostra descrizione',
+    text: '?'
+  });
+  otherServicesToggle.addEventListener('click', () => {
+    const collapsed = otherServicesDesc.hidden;
+    otherServicesDesc.hidden = !collapsed;
+    otherServicesToggle.setAttribute('aria-expanded', String(collapsed));
+  });
+  root.appendChild(el('div', { class: 'section-title other-services-title' }, [
+    'Prova gli altri servizi',
+    otherServicesToggle
+  ]));
+  root.appendChild(otherServicesSection(otherServicesDesc));
+
   function themeSection() {
     const grid = el('div', { class: 'theme-grid' });
     const draw = () => {
@@ -122,6 +150,23 @@ export function renderSettings(root, api) {
       ]),
       actions
     ]);
+  }
+
+  function otherServicesSection(desc) {
+    const OTHER_SERVICES = [
+      { name: 'GymBro', url: 'https://stranu.github.io/GymBro', icon: 'https://stranu.github.io/GymBro/icons/icon-192.png' },
+      { name: 'IndiSpesabile', url: 'https://stranu.github.io/IndiSpesabile', icon: 'https://stranu.github.io/IndiSpesabile/icons/icon-192.png' }
+    ];
+    const rows = OTHER_SERVICES.map((service) => el('a', {
+      class: 'other-service-link',
+      href: service.url,
+      target: '_blank',
+      rel: 'noopener noreferrer'
+    }, [
+      el('img', { class: 'other-service-icon', src: service.icon, alt: '', loading: 'lazy', width: 40, height: 40 }),
+      el('span', { class: 'other-service-name', text: service.name })
+    ]));
+    return el('div', { class: 'card other-services' }, [desc, ...rows]);
   }
 
   function backupSection() {
