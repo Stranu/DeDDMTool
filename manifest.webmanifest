@@ -2,6 +2,7 @@
   "name": "DM Toolkit",
   "short_name": "DM Toolkit",
   "description": "Suite di strumenti per Dungeon Master di D&D: gestore iniziativa, condizioni e magie.",
+  "id": "/DeDDMTool/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
